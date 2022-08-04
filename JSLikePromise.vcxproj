@@ -150,7 +150,7 @@
     <ClInclude Include="JSLikePromise.hpp" />
     <ClInclude Include="JSLikePromiseAll.hpp" />
     <ClInclude Include="JSLikePromiseAny.hpp" />
-    <ClInclude Include="JSLikeVoidPromise.hpp" />
+    <ClInclude Include="JSLikeBasePromise.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.md" />

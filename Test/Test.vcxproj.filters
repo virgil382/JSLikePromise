@@ -23,7 +23,7 @@
     <ClCompile Include="TimerExtent.cpp">
       <Filter>HelperFiles</Filter>
     </ClCompile>
-    <ClCompile Include="TestJsLikeVoidPromise.cpp">
+    <ClCompile Include="TestJsLikeBasePromise.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TestJsLikePromiseAll.cpp">

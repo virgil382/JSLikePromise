@@ -19,13 +19,13 @@
     <ClInclude Include="JSLikePromise.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="JSLikeVoidPromise.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="JSLikePromiseAll.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="JSLikePromiseAny.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="JSLikeBasePromise.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

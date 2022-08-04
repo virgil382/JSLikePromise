@@ -7,7 +7,7 @@
 #include <deque>
 
 #include "../JSLikePromise.hpp"
-#include "../JSLikeVoidPromise.hpp"
+#include "../JSLikeBasePromise.hpp"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 

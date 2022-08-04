@@ -6,7 +6,7 @@
 #include <thread>
 #include <deque>
 
-#include "../JSLikeVoidPromise.hpp"
+#include "../JSLikeBasePromise.hpp"
 #include "../JSLikePromise.hpp"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -14,7 +14,7 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace std;
 using namespace JSLike;
 
-namespace TestJSLikeVoidPromise
+namespace TestJSLikeBasePromise
 {
 	//***************************************************************************************
 	TEST_CLASS(TestPromiseWithVoidTemplateArgument)
@@ -49,7 +49,7 @@ namespace TestJSLikeVoidPromise
 	TEST_CLASS(TestFunctionCallsCoroutineThatDoesNotSuspend)
 	{
 	private:
-		VoidPromise myCoroutine0() {
+		BasePromise myCoroutine0() {
 			co_await suspend_never{};
 		}
 
@@ -85,13 +85,13 @@ namespace TestJSLikeVoidPromise
 	TEST_CLASS(TestFunctionCallsCoroutineThatSuspendsAndContinuesAfter1sec1)
 	{
 	private:
-		VoidPromise myCoroutine0() {
+		BasePromise myCoroutine0() {
 			co_await resolveAfter1Sec();
 		}
 
-		std::shared_ptr<VoidPromiseState> m_promiseState;
-		VoidPromise resolveAfter1Sec() {
-			return VoidPromise([this](auto promiseState)
+		std::shared_ptr<BasePromiseState> m_promiseState;
+		BasePromise resolveAfter1Sec() {
+			return BasePromise([this](auto promiseState)
 				{
 					m_promiseState = promiseState;
 				});
@@ -113,13 +113,13 @@ namespace TestJSLikeVoidPromise
 	TEST_CLASS(TestFunctionCallsCoroutineThatSuspendsAndContinuesAfter1sec2)
 	{
 	private:
-		VoidPromise myCoroutine0() {
+		BasePromise myCoroutine0() {
 			co_await resolveAfter1Sec();
 		}
 
-		std::shared_ptr<VoidPromiseState> m_promiseState;
-		VoidPromise resolveAfter1Sec() {
-			return VoidPromise([this](auto promiseState)
+		std::shared_ptr<BasePromiseState> m_promiseState;
+		BasePromise resolveAfter1Sec() {
+			return BasePromise([this](auto promiseState)
 				{
 					m_promiseState = promiseState;
 				});
@@ -146,11 +146,11 @@ namespace TestJSLikeVoidPromise
 	TEST_CLASS(TestCoroutineCallsCoroutineThatResolvesImmediately)
 	{
 	private:
-		VoidPromise myCoroutine0() {
+		BasePromise myCoroutine0() {
 			co_await myCoroutine1();
 		}
 
-		VoidPromise myCoroutine1() {
+		BasePromise myCoroutine1() {
 			co_return;
 		}
 
@@ -181,17 +181,17 @@ namespace TestJSLikeVoidPromise
 	TEST_CLASS(TestCoroutineCallsCoroutineThatResolvesAfter1Sec1)
 	{
 	private:
-		VoidPromise myCoroutine0() {
+		BasePromise myCoroutine0() {
 			co_await myCoroutine1();
 		}
 
-		VoidPromise myCoroutine1() {
+		BasePromise myCoroutine1() {
 			co_await resolveAfter1Sec();
 		}
 
-		std::shared_ptr<VoidPromiseState> m_promiseState;
-		VoidPromise resolveAfter1Sec() {
-			return VoidPromise([this](auto promiseState)
+		std::shared_ptr<BasePromiseState> m_promiseState;
+		BasePromise resolveAfter1Sec() {
+			return BasePromise([this](auto promiseState)
 				{
 					m_promiseState = promiseState;
 				});
@@ -213,17 +213,17 @@ namespace TestJSLikeVoidPromise
 	TEST_CLASS(TestCoroutineCallsCoroutineThatResolvesAfter1Sec2)
 	{
 	private:
-		VoidPromise myCoroutine0() {
+		BasePromise myCoroutine0() {
 			co_await myCoroutine1();
 		}
 
-		VoidPromise myCoroutine1() {
+		BasePromise myCoroutine1() {
 			co_await resolveAfter1Sec();
 		}
 
-		std::shared_ptr<VoidPromiseState> m_promiseState;
-		VoidPromise resolveAfter1Sec() {
-			return VoidPromise([this](auto promiseState)
+		std::shared_ptr<BasePromiseState> m_promiseState;
+		BasePromise resolveAfter1Sec() {
+			return BasePromise([this](auto promiseState)
 				{
 					m_promiseState = promiseState;
 				});
@@ -250,7 +250,7 @@ namespace TestJSLikeVoidPromise
 	TEST_CLASS(TestFunctionCallsCoroutineThatDoesNotSuspendAndThrows)
 	{
 	private:
-		VoidPromise myCoroutine0() {
+		BasePromise myCoroutine0() {
 			int i = std::string().at(1); // this generates an std::out_of_range
 			co_return;
 		}
@@ -281,14 +281,14 @@ namespace TestJSLikeVoidPromise
 	TEST_CLASS(TestFunctionCallsCoroutineThatSuspendsAndContinuesAfter1secAndThrows)
 	{
 	private:
-		VoidPromise myCoroutine0() {
+		BasePromise myCoroutine0() {
 			co_await resolveAfter1Sec();
 			int i = std::string().at(1); // this generates an std::out_of_range
 		}
 
-		std::shared_ptr<VoidPromiseState> m_promiseState;
-		VoidPromise resolveAfter1Sec() {
-			return VoidPromise([this](auto promiseState)
+		std::shared_ptr<BasePromiseState> m_promiseState;
+		BasePromise resolveAfter1Sec() {
+			return BasePromise([this](auto promiseState)
 				{
 					m_promiseState = promiseState;
 				});
@@ -321,13 +321,13 @@ namespace TestJSLikeVoidPromise
 	TEST_CLASS(TestFunctionCallsCoroutineThatSuspendsAndThrowsAfter1sec)
 	{
 	private:
-		VoidPromise myCoroutine0() {
+		BasePromise myCoroutine0() {
 			co_await rejectAfter1Sec(); // This is supposed to throw... How?
 		}
 
-		std::shared_ptr<VoidPromiseState> m_promiseState;
-		VoidPromise rejectAfter1Sec() {
-			return VoidPromise([this](auto promiseState)
+		std::shared_ptr<BasePromiseState> m_promiseState;
+		BasePromise rejectAfter1Sec() {
+			return BasePromise([this](auto promiseState)
 				{
 					m_promiseState = promiseState;
 				});

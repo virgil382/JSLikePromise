@@ -8,12 +8,12 @@
 #include <vector>
 
 #include "JSLikePromise.hpp"
-#include "JSLikeVoidPromise.hpp"
+#include "JSLikeBasePromise.hpp"
 
 using namespace std;
 
 namespace JSLike {
-  struct PromiseAllState : public PromiseState< std::vector<std::shared_ptr<VoidPromiseState>>> {
+  struct PromiseAllState : public PromiseState< std::vector<std::shared_ptr<BasePromiseState>>> {
     PromiseAllState() : m_nUnresolved(-1) {}
 
   private:
@@ -24,7 +24,7 @@ namespace JSLike {
     PromiseAllState(PromiseAllState&& other) = delete;
     PromiseAllState& operator=(const PromiseAllState&) = delete;
 
-    void init(std::shared_ptr<PromiseAllState> thisState, std::vector<JSLike::VoidPromise>& monitoredPromises)
+    void init(std::shared_ptr<PromiseAllState> thisState, std::vector<JSLike::BasePromise>& monitoredPromises)
     {
       m_nUnresolved = monitoredPromises.size();
 
@@ -44,20 +44,20 @@ namespace JSLike {
     }
 
     size_t                                                                  m_nUnresolved;
-    std::vector<std::shared_ptr<VoidPromiseState>>                          m_promiseStates;
+    std::vector<std::shared_ptr<BasePromiseState>>                          m_promiseStates;
   };  // PromiseAllState
 
 
   /**
-   * A PromiseAll is initialized/constructed with a vector of VoidPromises (e.g. VoidPromises,
+   * A PromiseAll is initialized/constructed with a vector of BasePromises (e.g. BasePromises,
    * Promise<T>s, or other PromiseAlls), which it then monitors for resolution or rejection.
    *
-   * After all the VoidPromises are resolved, its "Then" lambda is called with a
+   * After all the BasePromises are resolved, its "Then" lambda is called with a
    * PromiseAll::ResultType (see typedef), which is vector of shared pointers to the
-   * VoidPromiseStates (of the VoidPromises).  The Lambda can retrieve the value of each
-   * (derived) VoidPromiseState by calling VoidPromiseState::value<T>().  Example:
+   * BasePromiseStates (of the BasePromises).  The Lambda can retrieve the value of each
+   * (derived) BasePromiseState by calling BasePromiseState::value<T>().  Example:
    * 
-   * void myFunction(VoidPromise &p0, VoidPromise &p1, VoidPromise &p2, VoidPromise &p3)
+   * void myFunction(BasePromise &p0, BasePromise &p1, BasePromise &p2, BasePromise &p3)
    * {
    *   PromiseAll pa({ p0, p1, p2, p3 });  // These promises are constructed/resolved elsewhere.
    *   pa.Then([&](auto states)            // The type of states is PromiseAll::ResultType.
@@ -65,32 +65,32 @@ namespace JSLike {
    *       cout << states[1]->value<int>();
    *       cout << states[2]->value<string>();
    *       cout << states[3]->value<double>();
-   *       // In this example we suppose that, p0 is VoidPromiseState, so it doesn't have a value.
+   *       // In this example we suppose that, p0 is BasePromiseState, so it doesn't have a value.
    *     });
    * }
    * 
-   * A PromiseAll is rejected if any of the VoidPromises with which it is constructed/initialized
+   * A PromiseAll is rejected if any of the BasePromises with which it is constructed/initialized
    * is rejected.  It's "Catch" Lambda is called with the same exception_ptr with which the
-   * VoidPromise was rejected.
+   * BasePromise was rejected.
    * 
    * Coroutines can co_await on a PromiseAll via a PromiseAll::awaiter_type, which the compiler
-   * automatically constructs.  After all the VoidPromises are resolved, the
+   * automatically constructs.  After all the BasePromises are resolved, the
    * PromiseAll::awaiter_type resumes the coroutine and returns a PromiseAll::ResultType to the
-   * coroutine.  However, if a VoidPromise is rejected, then the PromiseAll::awaiter_type
-   * resumes the coroutine and rethrows the exception_ptr with which the VoidPromise was rejected.
+   * coroutine.  However, if a BasePromise is rejected, then the PromiseAll::awaiter_type
+   * resumes the coroutine and rethrows the exception_ptr with which the BasePromise was rejected.
    * 
    * Coroutines can return a PromiseAll, which is "wired up" to settle at the same time and with
    * the same result as the PromiseAll resulting from co_return.
    */
-  struct PromiseAll : public Promise<std::vector<std::shared_ptr<VoidPromiseState>>> {
+  struct PromiseAll : public Promise<std::vector<std::shared_ptr<BasePromiseState>>> {
   public:
-    typedef std::vector<std::shared_ptr<VoidPromiseState>> ResultType;
+    typedef std::vector<std::shared_ptr<BasePromiseState>> ResultType;
 
     /**
-     * Construct a PromiseAll with the vector of VoidPromises that it will monitor for resolution/rejection.
-     * @param promises The vector of VoidPromises.
+     * Construct a PromiseAll with the vector of BasePromises that it will monitor for resolution/rejection.
+     * @param promises The vector of BasePromises.
      */
-    PromiseAll(std::vector<JSLike::VoidPromise> promises)
+    PromiseAll(std::vector<JSLike::BasePromise> promises)
     {
       auto s = state();
       s->init(s, promises);

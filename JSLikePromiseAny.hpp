@@ -10,12 +10,12 @@
 #include <vector>
 
 #include "JSLikePromise.hpp"
-#include "JSLikeVoidPromise.hpp"
+#include "JSLikeBasePromise.hpp"
 
 using namespace std;
 
 namespace JSLike {
-  struct PromiseAnyState : public PromiseState< std::shared_ptr<VoidPromiseState>> {
+  struct PromiseAnyState : public PromiseState< std::shared_ptr<BasePromiseState>> {
     PromiseAnyState() = default;
 
   private:
@@ -26,7 +26,7 @@ namespace JSLike {
     PromiseAnyState(PromiseAnyState&& other) = delete;
     PromiseAnyState& operator=(const PromiseAnyState&) = delete;
 
-    void init(std::shared_ptr<PromiseAnyState> thisState, std::vector<JSLike::VoidPromise>& monitoredPromises)
+    void init(std::shared_ptr<PromiseAnyState> thisState, std::vector<JSLike::BasePromise>& monitoredPromises)
     {
       for (size_t i = 0, vectorSize = monitoredPromises.size(); i < vectorSize; i++) {
         auto monitoredPromiseState = monitoredPromises[i].m_state;
@@ -46,16 +46,16 @@ namespace JSLike {
 
 
   /**
-   * A PromiseAny is initialized/constructed with a vector of VoidPromises (e.g. VoidPromises,
+   * A PromiseAny is initialized/constructed with a vector of BasePromises (e.g. BasePromises,
    * Promise<T>s, or other PromiseAnys), which it then monitors for resolution or rejection.
    *
-   * After one of the VoidPromises is resolved, the PromiseAny's "Then" lambda is called with a
+   * After one of the BasePromises is resolved, the PromiseAny's "Then" lambda is called with a
    * PromiseAny::ResultType (see typedef), which is a shared pointer to the
-   * VoidPromiseState (of the VoidPromises) that was resolved.  The Lambda can retrieve the
-   * type and value of the (derived) VoidPromiseState by calling VoidPromiseState::isValueOfType<T>()
-   * and VoidPromiseState::value<T>().  Example:
+   * BasePromiseState (of the BasePromises) that was resolved.  The Lambda can retrieve the
+   * type and value of the (derived) BasePromiseState by calling BasePromiseState::isValueOfType<T>()
+   * and BasePromiseState::value<T>().  Example:
    * 
-   * void myFunction(VoidPromise &p0, VoidPromise &p1, VoidPromise &p2, VoidPromise &p3)
+   * void myFunction(BasePromise &p0, BasePromise &p1, BasePromise &p2, BasePromise &p3)
    * {
    *   PromiseAny pa({ p0, p1, p2, p3 });  // One of these promises is resolved elsewhere.
    *   pa.Then([&](auto state)             // The type of states is PromiseAny::ResultType.
@@ -63,26 +63,26 @@ namespace JSLike {
    *       if(state->isValueOfType<int>())    cout << state->value<int>();
    *       if(state->isValueOfType<string>()) cout << state->value<string>();
    *       if(state->isValueOfType<double>()) cout << state->value<double>();
-   *       // In this example we suppose that, p0 is VoidPromiseState, so it doesn't have a value.
+   *       // In this example we suppose that, p0 is BasePromiseState, so it doesn't have a value.
    *     });
    * }
    * 
-   * A PromiseAny is rejected if any of the VoidPromises with which it is constructed/initialized
+   * A PromiseAny is rejected if any of the BasePromises with which it is constructed/initialized
    * is rejected.  It's "Catch" Lambda is called with the same exception_ptr with which the
-   * VoidPromise was rejected.
+   * BasePromise was rejected.
    *
    * Coroutines can return a PromiseAny, which is "wired up" to settle at the same time and with
    * the same result as the PromiseAany resulting from co_return.
    */
-  struct PromiseAny : public Promise<std::shared_ptr<VoidPromiseState>> {
+  struct PromiseAny : public Promise<std::shared_ptr<BasePromiseState>> {
   public:
-    typedef std::shared_ptr<VoidPromiseState> ResultType;
+    typedef std::shared_ptr<BasePromiseState> ResultType;
 
     /**
-     * Construct a PromiseAny with the vector of VoidPromises that it will monitor for resolution/rejection.
-     * @param promises The vector of VoidPromises.
+     * Construct a PromiseAny with the vector of BasePromises that it will monitor for resolution/rejection.
+     * @param promises The vector of BasePromises.
      */
-    PromiseAny(std::vector<JSLike::VoidPromise> promises)
+    PromiseAny(std::vector<JSLike::BasePromise> promises)
     {
       auto s = state();
       s->init(s, promises);

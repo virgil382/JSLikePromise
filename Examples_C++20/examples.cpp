@@ -131,7 +131,7 @@ void example05() {
 }
 //================================================================================
 // Use PromiseAll to wait for 3 promises to all get resolved to different value types after 1sec
-vector<shared_ptr<VoidPromiseState>> example06_promiseStates;
+vector<shared_ptr<BasePromiseState>> example06_promiseStates;
 
 template<typename T>
 Promise<T> ex6_resolveAfter1Sec() {
@@ -161,7 +161,7 @@ void example06() {
 }
 //================================================================================
 // Use PromiseAny() to wait for any one of 3 promises of different value types to get resolved after 1sec
-vector<shared_ptr<VoidPromiseState>> example07_promiseStates;
+vector<shared_ptr<BasePromiseState>> example07_promiseStates;
 
 template<typename T>
 Promise<T> ex7_resolveAfter1Sec() {

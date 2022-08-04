@@ -8,7 +8,7 @@ This library enables you to write C++ that looks and feels like JavaScript code.
 Add this to your <code>.cpp</code> file:
 
 <pre>
-#include "JSLikeVoidPromise.hpp"
+#include "JSLikeBasePromise.hpp"
 #include "JSLikePromise.hpp"
 #include "JSLikePromiseAny.hpp"
 #include "JSLikePromiseAll.hpp"

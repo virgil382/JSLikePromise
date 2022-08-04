@@ -7,7 +7,7 @@
 #include <exception>
 #include <concepts>
 
-#include "JSLikeVoidPromise.hpp"
+#include "JSLikeBasePromise.hpp"
 
 using namespace std;
 
@@ -20,7 +20,7 @@ namespace JSLike {
 
 
   template<typename T>
-  struct PromiseState : public VoidPromiseState {
+  struct PromiseState : public BasePromiseState {
     PromiseState() = default;
 
     // Don't allow copies of any kind.  Always use std::shared_ptr to instances of this type.
@@ -70,7 +70,7 @@ namespace JSLike {
 
 
   template<typename T=void>
-  struct Promise : public VoidPromise {
+  struct Promise : public BasePromise {
   protected:
     Promise() = default;
 
@@ -153,7 +153,7 @@ namespace JSLike {
       awaiter_type(awaiter_type&& other) = default;
       awaiter_type& operator=(const awaiter_type&) = delete;
 
-      awaiter_type(std::shared_ptr<VoidPromiseState> state) : awaiter_type_base(state) {}
+      awaiter_type(std::shared_ptr<BasePromiseState> state) : awaiter_type_base(state) {}
 
       /**
        * Called right before the call to co_await completes in order to return the result
@@ -195,12 +195,12 @@ namespace JSLike {
   };
 
   template<>
-  struct Promise<void> : VoidPromise {
+  struct Promise<void> : BasePromise {
   protected:
     Promise() = default;
   public:
 
-    Promise(std::function<void(shared_ptr<VoidPromiseState>)> initializer)
+    Promise(std::function<void(shared_ptr<BasePromiseState>)> initializer)
     {
       initializer(state());
     }

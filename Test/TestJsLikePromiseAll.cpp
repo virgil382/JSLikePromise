@@ -9,7 +9,7 @@
 #include <utility>  // for std::pair
 
 #include "TimerExtent.h"
-#include "../JSLikeVoidPromise.hpp"
+#include "../JSLikeBasePromise.hpp"
 #include "../JSLikePromise.hpp"
 #include "../JSLikePromiseAll.hpp"
 
@@ -26,8 +26,8 @@ namespace TestJSLikePromiseAll
 	public:
 		TEST_METHOD(ConstructPromiseAll)
 		{
-			// Get a VoidPromise that we'll resolve later, and its state.
-			auto [p0, p0state] = VoidPromise::getUnresolvedPromiseAndState();
+			// Get a BasePromise that we'll resolve later, and its state.
+			auto [p0, p0state] = BasePromise::getUnresolvedPromiseAndState();
 
 			// Get 3 pre-resolved Promises.
 			Promise<int> p1(1);
@@ -70,7 +70,7 @@ namespace TestJSLikePromiseAll
 					Assert::AreEqual(3.3, states[2]->value<double>());
 				});
 
-			auto [p0, p0state] = VoidPromise::getUnresolvedPromiseAndState();
+			auto [p0, p0state] = BasePromise::getUnresolvedPromiseAndState();
 			PromiseAll pa2({ pa1, p0 });
 
 			bool areAllResolved = false;
@@ -96,7 +96,7 @@ namespace TestJSLikePromiseAll
 			Promise<string> p2("Hello");
 			Promise<double> p3(3.3);
 
-			std::vector<std::shared_ptr<VoidPromiseState>> result(co_await PromiseAll({ p1, p2, p3 }));
+			std::vector<std::shared_ptr<BasePromiseState>> result(co_await PromiseAll({ p1, p2, p3 }));
 			Assert::AreEqual(1, result[0]->value<int>());
 			Assert::AreEqual(std::string("Hello"), result[1]->value<string>());
 			Assert::AreEqual(3.3, result[2]->value<double>());
@@ -157,7 +157,7 @@ namespace TestJSLikePromiseAll
 	TEST_CLASS(TestCoroutineReturnsPromiseAll)
 	{
 	private:
-		vector<shared_ptr<VoidPromiseState>> m_promiseStates;
+		vector<shared_ptr<BasePromiseState>> m_promiseStates;
 
 		PromiseAll myPromiseAllReturningCoroutine() {
 			// Create 3 Promises to give to PromiseAll.  Save their PromiseStates.
@@ -257,7 +257,7 @@ namespace TestJSLikePromiseAll
 	TEST_CLASS(TestCoroutineReturnsPromiseAllWithCatch)
 	{
 	private:
-		vector<shared_ptr<VoidPromiseState>> m_promiseStates;
+		vector<shared_ptr<BasePromiseState>> m_promiseStates;
 
 		PromiseAll myPromiseAllReturningCoroutine() {
 			// Create 3 Promises to give to PromiseAll.  Save their PromiseStates.

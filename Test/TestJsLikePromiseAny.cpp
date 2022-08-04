@@ -9,7 +9,7 @@
 #include <utility>  // for std::pair
 
 #include "TimerExtent.h"
-#include "../JSLikeVoidPromise.hpp"
+#include "../JSLikeBasePromise.hpp"
 #include "../JSLikePromise.hpp"
 #include "../JSLikePromiseAny.hpp"
 
@@ -26,8 +26,8 @@ namespace TestJSLikePromiseAny
 	public:
 		TEST_METHOD(Test)
 		{
-			// Get a VoidPromise that we'll resolve later, and its state.
-			auto [p0, p0state] = VoidPromise::getUnresolvedPromiseAndState();
+			// Get a BasePromise that we'll resolve later, and its state.
+			auto [p0, p0state] = BasePromise::getUnresolvedPromiseAndState();
 
 			// Get 3 pre-resolved Promises.
 			Promise<int> p1(1);
@@ -55,7 +55,7 @@ namespace TestJSLikePromiseAny
 	public:
 		TEST_METHOD(Test)
 		{
-			auto p0 = VoidPromise([](auto junk) {});  // won't resolve
+			auto p0 = BasePromise([](auto junk) {});  // won't resolve
 
 			// Get 2 pre-resolved Promises, and 1 onresolved Promise.
 			auto p1 = Promise<int>([](auto junk) {});  // won't resolve
@@ -99,7 +99,7 @@ namespace TestJSLikePromiseAny
 			Promise<string> p2("Hello");
 			Promise<double> p3(3.3);
 
-			std::shared_ptr<VoidPromiseState> result = co_await PromiseAny({ p1, p2, p3 });
+			std::shared_ptr<BasePromiseState> result = co_await PromiseAny({ p1, p2, p3 });
 			Assert::AreEqual(1, result->value<int>());
 
 			co_return true;
