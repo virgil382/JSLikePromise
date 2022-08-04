@@ -1,2 +1,5 @@
 *.vcxproj.user
 /.vs
+/Debug
+/Examples_C++20/Debug
+/Test/Debug
