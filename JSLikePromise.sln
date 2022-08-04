@@ -1,0 +1,64 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32630.192
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UnitTests", "Test\Test.vcxproj", "{3FFFECA3-A516-4332-A998-4F42D5F754A5}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JSLikePromise", "JSLikePromise.vcxproj", "{44362121-681C-4E20-8708-38774AA1BB85}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples_JavaScript", "Examples_JavaScript", "{16902844-F927-491C-9E60-93C617696B02}"
+	ProjectSection(SolutionItems) = preProject
+		Examples_JavaScript\examples.js = Examples_JavaScript\examples.js
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples_C++20", "Examples_C++20", "{A479C9C2-CA45-47F5-ACCD-C9A43A810E6D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{24C8FB1B-060D-4CBE-ABE4-9090E9F07C66}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Examples_C++20", "Examples_C++20\Examples_C++20.vcxproj", "{0FC9B1B9-F834-42C9-B06A-C3166D40398B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3FFFECA3-A516-4332-A998-4F42D5F754A5}.Debug|x64.ActiveCfg = Debug|x64
+		{3FFFECA3-A516-4332-A998-4F42D5F754A5}.Debug|x64.Build.0 = Debug|x64
+		{3FFFECA3-A516-4332-A998-4F42D5F754A5}.Debug|x86.ActiveCfg = Debug|Win32
+		{3FFFECA3-A516-4332-A998-4F42D5F754A5}.Debug|x86.Build.0 = Debug|Win32
+		{3FFFECA3-A516-4332-A998-4F42D5F754A5}.Release|x64.ActiveCfg = Release|x64
+		{3FFFECA3-A516-4332-A998-4F42D5F754A5}.Release|x64.Build.0 = Release|x64
+		{3FFFECA3-A516-4332-A998-4F42D5F754A5}.Release|x86.ActiveCfg = Release|Win32
+		{3FFFECA3-A516-4332-A998-4F42D5F754A5}.Release|x86.Build.0 = Release|Win32
+		{44362121-681C-4E20-8708-38774AA1BB85}.Debug|x64.ActiveCfg = Debug|x64
+		{44362121-681C-4E20-8708-38774AA1BB85}.Debug|x64.Build.0 = Debug|x64
+		{44362121-681C-4E20-8708-38774AA1BB85}.Debug|x86.ActiveCfg = Debug|Win32
+		{44362121-681C-4E20-8708-38774AA1BB85}.Debug|x86.Build.0 = Debug|Win32
+		{44362121-681C-4E20-8708-38774AA1BB85}.Release|x64.ActiveCfg = Release|x64
+		{44362121-681C-4E20-8708-38774AA1BB85}.Release|x64.Build.0 = Release|x64
+		{44362121-681C-4E20-8708-38774AA1BB85}.Release|x86.ActiveCfg = Release|Win32
+		{44362121-681C-4E20-8708-38774AA1BB85}.Release|x86.Build.0 = Release|Win32
+		{0FC9B1B9-F834-42C9-B06A-C3166D40398B}.Debug|x64.ActiveCfg = Debug|x64
+		{0FC9B1B9-F834-42C9-B06A-C3166D40398B}.Debug|x64.Build.0 = Debug|x64
+		{0FC9B1B9-F834-42C9-B06A-C3166D40398B}.Debug|x86.ActiveCfg = Debug|Win32
+		{0FC9B1B9-F834-42C9-B06A-C3166D40398B}.Debug|x86.Build.0 = Debug|Win32
+		{0FC9B1B9-F834-42C9-B06A-C3166D40398B}.Release|x64.ActiveCfg = Release|x64
+		{0FC9B1B9-F834-42C9-B06A-C3166D40398B}.Release|x64.Build.0 = Release|x64
+		{0FC9B1B9-F834-42C9-B06A-C3166D40398B}.Release|x86.ActiveCfg = Release|Win32
+		{0FC9B1B9-F834-42C9-B06A-C3166D40398B}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3FFFECA3-A516-4332-A998-4F42D5F754A5} = {24C8FB1B-060D-4CBE-ABE4-9090E9F07C66}
+		{0FC9B1B9-F834-42C9-B06A-C3166D40398B} = {A479C9C2-CA45-47F5-ACCD-C9A43A810E6D}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AB48BCB6-34BC-48F4-A437-FAB6FB89E86B}
+	EndGlobalSection
+EndGlobal
