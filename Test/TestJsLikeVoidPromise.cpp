@@ -3,7 +3,6 @@
 #include <coroutine>
 #include <functional>
 #include <iostream>
-#include <thread>
 #include <deque>
 
 #include "../JSLikePromise.hpp"
@@ -57,7 +56,7 @@ namespace TestJSLikeVoidPromise
 		{
 			// From a regular function, call a coroutine that returns immediately.
 			auto p = myCoroutine0();
-			std::this_thread::sleep_for(1000ms);
+
 			Assert::AreEqual(true, p.isResolved());
 		}
 
@@ -70,11 +69,6 @@ namespace TestJSLikeVoidPromise
 				{
 					wasThenCalled = true;
 				});
-
-			// Wait for Then to be called.
-			for (int i = 0; i < 30 && wasThenCalled == false; i++) {
-				std::this_thread::sleep_for(2000ms);
-			}
 
 			Assert::IsTrue(wasThenCalled);
 		}
@@ -102,7 +96,7 @@ namespace TestJSLikeVoidPromise
 			auto result = myCoroutine0();  // Should get resolved to 2 after 1sec
 
 			Assert::AreEqual(false, result.isResolved());
-			std::this_thread::sleep_for(1000ms);
+
 			m_promiseState->resolve();  // Resolve
 
 			Assert::AreEqual(true, result.isResolved());
@@ -135,7 +129,6 @@ namespace TestJSLikeVoidPromise
 						wasThenCalled = true;
 					});
 
-			std::this_thread::sleep_for(1000ms);
 			m_promiseState->resolve();  // Resolve
 
 			Assert::IsTrue(wasThenCalled);
@@ -157,8 +150,6 @@ namespace TestJSLikeVoidPromise
 		TEST_METHOD(GetResultAfterSleeping)
 		{
 			auto result = myCoroutine0();  // Should get resolved to 2 after 1sec
-
-			std::this_thread::sleep_for(1000ms);
 
 			Assert::AreEqual(true, result.isResolved());
 		}
@@ -202,7 +193,6 @@ namespace TestJSLikeVoidPromise
 			auto result = myCoroutine0();  // Should get resolved to 2 after 1sec
 
 			Assert::AreEqual(false, result.isResolved());
-			std::this_thread::sleep_for(1000ms);
 			m_promiseState->resolve();
 
 			Assert::AreEqual(true, result.isResolved());
@@ -239,7 +229,6 @@ namespace TestJSLikeVoidPromise
 						wasThenCalled = true;
 					});
 
-			std::this_thread::sleep_for(1000ms);
 			m_promiseState->resolve();
 
 			Assert::IsTrue(wasThenCalled);
@@ -310,7 +299,6 @@ namespace TestJSLikeVoidPromise
 					}
 				});
 
-			std::this_thread::sleep_for(1000ms);
 			m_promiseState->resolve();  // this will resume the coroutine, which will throw
 
 			Assert::IsTrue(wasExceptionThrown);
@@ -349,7 +337,6 @@ namespace TestJSLikeVoidPromise
 					}
 				});
 
-			std::this_thread::sleep_for(1000ms);
 			m_promiseState->reject(make_exception_ptr(std::out_of_range("invalid string position")));
 
 			Assert::IsTrue(wasExceptionThrown);

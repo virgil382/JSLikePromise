@@ -3,7 +3,6 @@
 #include <coroutine>
 #include <functional>
 #include <iostream>
-#include <thread>
 #include <deque>
 
 #include "../JSLikePromise.hpp"

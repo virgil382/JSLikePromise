@@ -4,7 +4,6 @@
 #include <coroutine>
 #include <functional>
 #include <iostream>
-#include <thread>
 #include <vector>
 #include <utility>  // for std::pair
 
@@ -45,9 +44,7 @@ namespace TestJSLikePromiseAll
 				});
 
 			Assert::IsFalse(areAllResolved);
-			std::this_thread::sleep_for(1000ms);
 			p0state->resolve();  // Resolve
-
 			Assert::IsTrue(areAllResolved);
 		}
 	};
@@ -79,9 +76,7 @@ namespace TestJSLikePromiseAll
 				});
 
 			Assert::IsFalse(areAllResolved);
-			std::this_thread::sleep_for(1000ms);
 			p0state->resolve();  // Resolve
-
 			Assert::IsTrue(areAllResolved);
 		}
 	};
