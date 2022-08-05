@@ -13,7 +13,7 @@
 using namespace std;
 
 namespace JSLike {
-  struct PromiseAllState : public PromiseState< std::vector<std::shared_ptr<BasePromiseState>>> {
+  struct PromiseAllState : public PromiseState<std::vector<std::shared_ptr<BasePromiseState>>> {
     PromiseAllState() : m_nUnresolved(-1) {}
 
   private:

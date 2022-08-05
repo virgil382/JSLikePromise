@@ -53,6 +53,8 @@ namespace JSLike {
     BasePromiseState(BasePromiseState&& other) = delete;
     BasePromiseState& operator=(const BasePromiseState&) = delete;
 
+    virtual ~BasePromiseState() {}  // Force BasePromiseState to be polymorphic to support dynamic_cast<>.
+
     /**
      * Resolve the BasePromise, and resume the coroutine or execute the "Then" Lambda.
      */
@@ -175,7 +177,7 @@ namespace JSLike {
     friend struct PromiseAnyState;
     friend struct PromiseAny;
 
-    virtual void Then(std::function<void()> thenVoidLambda) {
+    void Then(std::function<void()> thenVoidLambda) {
       m_thenVoidLambda = thenVoidLambda;
 
       if (m_isResolved) {

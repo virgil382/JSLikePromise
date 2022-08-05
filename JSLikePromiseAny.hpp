@@ -15,7 +15,7 @@
 using namespace std;
 
 namespace JSLike {
-  struct PromiseAnyState : public PromiseState< std::shared_ptr<BasePromiseState>> {
+  struct PromiseAnyState : public PromiseState<std::shared_ptr<BasePromiseState>> {
     PromiseAnyState() = default;
 
   private:
