@@ -161,7 +161,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="TestJsLikePromise.cpp" />
+    <ClCompile Include="TestJsLikeValuedPromise.cpp" />
     <ClCompile Include="TestJsLikePromiseAll.cpp" />
     <ClCompile Include="TestJsLikePromiseAny.cpp" />
     <ClCompile Include="TestJsLikeVoidPromise.cpp" />

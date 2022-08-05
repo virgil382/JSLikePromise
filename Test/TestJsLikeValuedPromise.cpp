@@ -7,14 +7,13 @@
 #include <deque>
 
 #include "../JSLikePromise.hpp"
-#include "../JSLikeBasePromise.hpp"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 using namespace std;
 using namespace JSLike;
 
-namespace TestJSLikePromise
+namespace TestJSLikeValuedPromise
 {
 	//***************************************************************************************
 	TEST_CLASS(TestFunctionCallsCoroutineThatDoesNotSuspend)

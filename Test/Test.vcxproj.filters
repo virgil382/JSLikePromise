@@ -14,7 +14,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="TestJsLikePromise.cpp">
+    <ClCompile Include="TestJsLikeValuedPromise.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Timer.cpp">
@@ -23,13 +23,13 @@
     <ClCompile Include="TimerExtent.cpp">
       <Filter>HelperFiles</Filter>
     </ClCompile>
-    <ClCompile Include="TestJsLikeBasePromise.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="TestJsLikePromiseAll.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TestJsLikePromiseAny.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TestJsLikeVoidPromise.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

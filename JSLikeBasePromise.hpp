@@ -306,22 +306,6 @@ namespace JSLike {
       std::shared_ptr<BasePromiseState> m_state;
     };
 
-    /**
-     * A promise_type is created each time a coroutine that returns BasePromise is called.
-     * The promise_type immediately creates BasePromise, which is returned to the caller.
-     */
-    struct promise_type : promise_type_base {
-      // Called when a coroutine is invoked.  This method returns a BasePromise to the caller.
-      BasePromise get_return_object() {
-        BasePromise p;
-        m_state = p.state();
-        return p;
-      }
-
-      void return_void() {
-        m_state->resolve();
-      }
-    };
 
     /**
      * awaiter_type_base is the base for awaiter_type implemented by various Promises derived
@@ -362,50 +346,6 @@ namespace JSLike {
 
       std::shared_ptr<BasePromiseState> m_state;
     };
-
-    /**
-     * An awaiter_type is constructed each time a coroutine co_awaits on a BasePromise.
-     */
-    struct awaiter_type : awaiter_type_base {
-      awaiter_type() = delete;
-      awaiter_type(const awaiter_type&) = delete;
-      awaiter_type(awaiter_type&& other) = default;
-      awaiter_type& operator=(const awaiter_type&) = delete;
-
-      awaiter_type(std::shared_ptr<BasePromiseState> state) : awaiter_type_base(state) {}
-
-      /**
-       * Called right before the call to co_await completes in order to give the awaiter_type
-       * to rethrow the exception with which the BasePromise was rejected (via its BasePromiseState).
-       * The xecption is rethrown in the context of the coroutine (e.g. so that it may optionally
-       * catch/handle the exception).
-       */
-      void await_resume() const {
-        m_state->rethrowIfRejected();
-      }
-    };
-
-    awaiter_type operator co_await() {
-      awaiter_type a(state());
-      return a;
-    }
-
-    /**
-     * Create an unresolved Promise<T> and return it and its PromiseState<T>.  Call this method like this:
-     *
-     *   auto [p0, p0state] = Promise&lt;T&gt;::getUnresolvedPromiseAndState();
-     *
-     * @return A std::pair containing the Promise&lt;T&gt; and its PromiseState&lt;T&gt;.
-     */
-    std::pair<BasePromise, std::shared_ptr<BasePromiseState>> static getUnresolvedPromiseAndState() {
-      std::shared_ptr<BasePromiseState> state;
-      BasePromise p([&](auto promiseState)
-        {
-          state = promiseState;
-        });
-
-      return { std::move(p), state };
-    }
   };
 
 };

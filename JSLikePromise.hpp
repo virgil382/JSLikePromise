@@ -19,7 +19,7 @@ namespace JSLike {
   struct PromiseAny;
 
 
-  template<typename T>
+  template<typename T=void>
   struct PromiseState : public BasePromiseState {
     PromiseState() = default;
 
@@ -67,6 +67,18 @@ namespace JSLike {
     std::function<void(T)>                  m_thenLambda;  // TODO: Make this a list of Lambdas
     T                                       m_result;
   };
+
+
+  template<>
+  struct PromiseState<void> : public BasePromiseState {
+    PromiseState() : BasePromiseState() {}
+
+    // Don't allow copies of any kind.  Always use std::shared_ptr to instances of this type.
+    PromiseState(const PromiseState&) = delete;
+    PromiseState(PromiseState&& other) = delete;
+    PromiseState& operator=(const PromiseState&) = delete;
+  };
+
 
 
   template<typename T=void>
@@ -194,15 +206,90 @@ namespace JSLike {
     }
   };
 
+
+
+
+
+
   template<>
   struct Promise<void> : BasePromise {
   protected:
     Promise() = default;
   public:
 
-    Promise(std::function<void(shared_ptr<BasePromiseState>)> initializer)
+    Promise(std::function<void(shared_ptr<PromiseState<>>)> initializer)
     {
       initializer(state());
+    }
+
+    /**
+     * A promise_type is created each time a coroutine that returns BasePromise is called.
+     * The promise_type immediately creates BasePromise, which is returned to the caller.
+     */
+    struct promise_type : promise_type_base {
+      // Called when a coroutine is invoked.  This method returns a BasePromise to the caller.
+      Promise get_return_object() {
+        Promise p;
+        m_state = p.state();
+        return p;
+      }
+
+      void return_void() {
+        m_state->resolve();
+      }
+    };
+
+    /**
+     * An awaiter_type is constructed each time a coroutine co_awaits on a BasePromise.
+     */
+    struct awaiter_type : awaiter_type_base {
+      awaiter_type() = delete;
+      awaiter_type(const awaiter_type&) = delete;
+      awaiter_type(awaiter_type&& other) = default;
+      awaiter_type& operator=(const awaiter_type&) = delete;
+
+      awaiter_type(std::shared_ptr<PromiseState<>> state) : awaiter_type_base(state) {}
+
+      /**
+       * Called right before the call to co_await completes in order to give the awaiter_type
+       * to rethrow the exception with which the BasePromise was rejected (via its BasePromiseState).
+       * The xecption is rethrown in the context of the coroutine (e.g. so that it may optionally
+       * catch/handle the exception).
+       */
+      void await_resume() const {
+        m_state->rethrowIfRejected();
+      }
+    };
+
+    // The state of the Promise is constructed by this Promise and it is shared with a promise_type or
+    // an awaiter_type, and with a "then" Lambda to resolve/reject the Promise.
+    std::shared_ptr<PromiseState<>> state() {
+      if (!m_state) m_state = std::make_shared<PromiseState<>>();
+
+      auto castState = std::dynamic_pointer_cast<JSLike::PromiseState<>>(m_state);
+      return castState;
+    }
+
+    awaiter_type operator co_await() {
+      awaiter_type a(state());
+      return a;
+    }
+
+    /**
+     * Create an unresolved Promise<> and return it and its PromiseState<>.  Call this method like this:
+     *
+     *   auto [p0, p0state] = Promise&lt;&gt;::getUnresolvedPromiseAndState();
+     *
+     * @return A std::pair containing the Promise&lt;&gt; and its PromiseState&lt;&gt;.
+     */
+    std::pair<Promise, std::shared_ptr<PromiseState<>>> static getUnresolvedPromiseAndState() {
+      std::shared_ptr<PromiseState<void>> state;
+      Promise p([&](auto promiseState)
+        {
+          state = promiseState;
+        });
+
+      return { std::move(p), state };
     }
   };
 

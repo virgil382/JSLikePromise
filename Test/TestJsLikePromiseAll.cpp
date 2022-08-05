@@ -9,7 +9,6 @@
 #include <utility>  // for std::pair
 
 #include "TimerExtent.h"
-#include "../JSLikeBasePromise.hpp"
 #include "../JSLikePromise.hpp"
 #include "../JSLikePromiseAll.hpp"
 
@@ -27,7 +26,7 @@ namespace TestJSLikePromiseAll
 		TEST_METHOD(ConstructPromiseAll)
 		{
 			// Get a BasePromise that we'll resolve later, and its state.
-			auto [p0, p0state] = BasePromise::getUnresolvedPromiseAndState();
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();
 
 			// Get 3 pre-resolved Promises.
 			Promise<int> p1(1);
@@ -70,7 +69,7 @@ namespace TestJSLikePromiseAll
 					Assert::AreEqual(3.3, states[2]->value<double>());
 				});
 
-			auto [p0, p0state] = BasePromise::getUnresolvedPromiseAndState();
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();
 			PromiseAll pa2({ pa1, p0 });
 
 			bool areAllResolved = false;
