@@ -26,9 +26,16 @@ namespace JSLike {
     PromiseAnyState(PromiseAnyState&& other) = delete;
     PromiseAnyState& operator=(const PromiseAnyState&) = delete;
 
-    void init(std::shared_ptr<PromiseAnyState> &thisState, std::vector<JSLike::BasePromise>& monitoredPromises)
+    void init(std::shared_ptr<PromiseAnyState> &thisState, std::vector<JSLike::BasePromise> const &monitoredPromises)
     {
-      for (size_t i = 0, vectorSize = monitoredPromises.size(); i < vectorSize; i++) {
+      size_t vectorSize = monitoredPromises.size();
+
+      if (vectorSize == 0) {
+        resolve(Promise<>().state());
+        return;
+      }
+
+      for (size_t i = 0; i < vectorSize; i++) {
         auto monitoredPromise = monitoredPromises[i];
         auto monitoredPromiseState = monitoredPromise.m_state;
 
@@ -100,6 +107,13 @@ namespace JSLike {
   public:
     typedef shared_ptr<BasePromiseState> ResultType;
 
+    PromiseAny() {
+      auto s = state();
+
+      auto ex = make_exception_ptr(std::logic_error("PromiseAny constructed with empty array"));
+      s->reject(ex);
+    };
+
     /**
      * Construct a PromiseAny with the vector of BasePromises that it will monitor for resolution/rejection.
      * @param promises The vector of BasePromises.
@@ -118,7 +132,7 @@ namespace JSLike {
     }
 
     PromiseAny Then(std::function<void(shared_ptr<BasePromiseState>)> thenLambda) {
-      PromiseAny chainedPromise;  // The new "chained" Promise that we'll return to the caller.
+      PromiseAny chainedPromise(false);  // The new "chained" Promise that we'll return to the caller.
       auto chainedPromiseState = chainedPromise.state();
 
       // Create a "bridge" between the current Promise and the new "chained" Promise that we'll return.
@@ -144,7 +158,7 @@ namespace JSLike {
     }
 
     PromiseAny Catch(std::function<void(std::exception_ptr)> catchLambda) {
-      PromiseAny chainedPromise;
+      PromiseAny chainedPromise(false);
       auto chainedPromiseState = chainedPromise.state();
 
       auto currentState = state();
@@ -170,7 +184,7 @@ namespace JSLike {
     }
 
     PromiseAny Then(std::function<void(shared_ptr<BasePromiseState>)> thenLambda, std::function<void(std::exception_ptr)> catchLambda) {
-      PromiseAny chainedPromise;  // The new "chained" Promise that we'll return to the caller.
+      PromiseAny chainedPromise(false);  // The new "chained" Promise that we'll return to the caller.
       auto chainedPromiseState = chainedPromise.state();
 
       // Create a "bridge" between the current Promise and the new "chained" Promise that we'll return.
@@ -212,7 +226,7 @@ namespace JSLike {
        *         by co_retrun.
        */
       PromiseAny get_return_object() {
-        PromiseAny p;
+        PromiseAny p(false);
         m_state = p.state();
         return p;
       }
@@ -283,9 +297,11 @@ namespace JSLike {
       return a;
     }
 
-
   private:
-    PromiseAny() = default;
-
+    PromiseAny(bool isResolved) {
+      auto s = state();
+      if (isResolved)
+        s->init(s, vector<BasePromise>{});
+    }
   }; // PromiseAny
 }; // namespace JSLike

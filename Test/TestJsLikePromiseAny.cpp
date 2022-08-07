@@ -446,6 +446,11 @@ namespace TestJSLikePromiseAny
 			co_return true;
 		}
 
+		PromiseAny CoroutineThatThrows() {
+			char c = std::string().at(1); // this throws a std::out_of_range
+			co_return PromiseAny(vector<BasePromise>{});
+		}
+
 	public:
 		TEST_METHOD(Preresolved_Then)
 		{
@@ -464,40 +469,6 @@ namespace TestJSLikePromiseAny
 
 			Assert::IsTrue(wasThenCalled);
 		}
-
-		TEST_METHOD(ResolvedLater_Then)
-		{
-			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();
-			auto [p1, p1state] = Promise<string>::getUnresolvedPromiseAndState();
-			auto [p2, p2state] = Promise<double>::getUnresolvedPromiseAndState();
-			auto p = PromiseAny({ p0, p1, p2 });
-
-			bool wasThenCalled = false;
-			CoReturnPromiseAny(p).Then([&](auto result)
-				{
-					Assert::AreEqual(1, result->value<int>());
-					wasThenCalled = true;
-				});
-
-			p0state->resolve(1);
-			Assert::IsTrue(wasThenCalled);
-		}
-
-		TEST_METHOD(ResolvedLater_co_await)
-		{
-			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();
-			auto [p1, p1state] = Promise<string>::getUnresolvedPromiseAndState();
-			auto [p2, p2state] = Promise<double>::getUnresolvedPromiseAndState();
-			auto p = PromiseAny({ p0, p1, p2 });
-
-
-			auto result = CoAwait(p);
-
-			Assert::IsFalse(result.isResolved());
-			p0state->resolve(1);
-			Assert::IsTrue(result.isResolved());
-			Assert::IsTrue(result.value() == true);
-		};
 
 		TEST_METHOD(Reject_Catch)
 		{
@@ -527,6 +498,91 @@ namespace TestJSLikePromiseAny
 			Assert::AreEqual(1, nCatchCalls);
 		}
 
+		TEST_METHOD(ResolvedLater_co_await)
+		{
+			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();
+			auto [p1, p1state] = Promise<string>::getUnresolvedPromiseAndState();
+			auto [p2, p2state] = Promise<double>::getUnresolvedPromiseAndState();
+			auto p = PromiseAny({ p0, p1, p2 });
+
+
+			auto result = CoAwait(p);
+
+			Assert::IsFalse(result.isResolved());
+			p0state->resolve(1);
+			Assert::IsTrue(result.isResolved());
+			Assert::IsTrue(result.value() == true);
+		};
+
+		TEST_METHOD(ResolvedLater_Then)
+		{
+			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();
+			auto [p1, p1state] = Promise<string>::getUnresolvedPromiseAndState();
+			auto [p2, p2state] = Promise<double>::getUnresolvedPromiseAndState();
+			auto p = PromiseAny({ p0, p1, p2 });
+
+			bool wasThenCalled = false;
+			CoReturnPromiseAny(p).Then([&](auto result)
+				{
+					Assert::AreEqual(1, result->value<int>());
+					wasThenCalled = true;
+				});
+
+			p0state->resolve(1);
+			Assert::IsTrue(wasThenCalled);
+		}
+
+		TEST_METHOD(throw_Catch)
+		{
+			bool wasExceptionThrown = false;
+
+			CoroutineThatThrows().Catch([&](std::exception_ptr eptr)
+				{
+					if (!eptr) Assert::Fail();
+
+					try {
+						std::rethrow_exception(eptr);
+					}
+					catch (std::exception& e) {
+						if (e.what() == string("invalid string position"))
+							wasExceptionThrown = true;
+					}
+				});
+
+			Assert::IsTrue(wasExceptionThrown);
+		}
+	};
+	//***************************************************************************************
+	TEST_CLASS(Test_constructors)
+	{
+	public:
+		TEST_METHOD(Assign)
+		{
+			PromiseAny pa1;
+			PromiseAny pa2 = pa1;
+
+			Assert::IsTrue(pa1.state() == pa2.state());
+		}
+
+		TEST_METHOD(Copy)
+		{
+			PromiseAny pa1;
+			PromiseAny pa2(pa1);
+
+			Assert::IsTrue(pa1.state() == pa2.state());
+		}
+
+		TEST_METHOD(Default)
+		{
+			PromiseAny pa;
+			Assert::IsTrue(pa.isRejected());
+		}
+
+		TEST_METHOD(EmptyVector)
+		{
+			PromiseAny pa(vector<BasePromise>{});
+			Assert::IsTrue(pa.isResolved());
+		}
 	};
 	//***************************************************************************************
 	TEST_CLASS(TestRejection)

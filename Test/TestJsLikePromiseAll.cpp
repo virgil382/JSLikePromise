@@ -127,6 +127,11 @@ namespace TestJSLikePromiseAll
 			co_return true;
 		}
 
+		PromiseAll CoroutineThatThrows() {
+			char c = std::string().at(1); // this throws a std::out_of_range
+			co_return PromiseAll(vector<BasePromise>{});
+		}
+
 	public:
 		TEST_METHOD(Preresolved_Then)
 		{
@@ -220,6 +225,58 @@ namespace TestJSLikePromiseAll
 			p2state->resolve(3.3);
 			Assert::IsTrue(result.isResolved());
 			Assert::IsTrue(result.value() == true);
+		}
+
+		TEST_METHOD(throw_Catch)
+		{
+			bool wasExceptionThrown = false;
+
+			CoroutineThatThrows().Catch([&](std::exception_ptr eptr)
+				{
+					if (!eptr) Assert::Fail();
+
+					try {
+						std::rethrow_exception(eptr);
+					}
+					catch (std::exception& e) {
+						if (e.what() == string("invalid string position"))
+							wasExceptionThrown = true;
+					}
+				});
+
+			Assert::IsTrue(wasExceptionThrown);
+		}
+	};
+	//***************************************************************************************
+	TEST_CLASS(Test_constructors)
+	{
+	public:
+		TEST_METHOD(Assign)
+		{
+			PromiseAll pa1;
+			PromiseAll pa2 = pa1;
+
+			Assert::IsTrue(pa1.state() == pa2.state());
+		}
+
+		TEST_METHOD(Copy)
+		{
+			PromiseAll pa1;
+			PromiseAll pa2(pa1);
+
+			Assert::IsTrue(pa1.state() == pa2.state());
+		}
+
+		TEST_METHOD(Default)
+		{
+			PromiseAll pa;
+			Assert::IsTrue(pa.isResolved());
+		}
+
+		TEST_METHOD(EmptyVector)
+		{
+			PromiseAll pa(vector<BasePromise>{});
+			Assert::IsTrue(pa.isResolved());
 		}
 	};
 	//***************************************************************************************

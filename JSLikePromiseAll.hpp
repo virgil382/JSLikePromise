@@ -24,9 +24,14 @@ namespace JSLike {
     PromiseAllState(PromiseAllState&& other) = delete;
     PromiseAllState& operator=(const PromiseAllState&) = delete;
 
-    void init(std::shared_ptr<PromiseAllState> &thisState, std::vector<JSLike::BasePromise>& monitoredPromises)
+    void init(shared_ptr<PromiseAllState> &thisState, vector<JSLike::BasePromise> const &monitoredPromises)
     {
       m_nUnresolved = monitoredPromises.size();
+
+      if (m_nUnresolved == 0) {
+        thisState->resolve(thisState->m_promiseStates);
+        return;
+      }
 
       for (size_t i = 0, vectorSize = monitoredPromises.size(); i < vectorSize; i++) {
         auto monitoredPromise = monitoredPromises[i];
@@ -89,18 +94,27 @@ namespace JSLike {
   public:
     typedef std::vector<std::shared_ptr<BasePromiseState>> ResultType;
 
+    PromiseAll() {
+      auto s = state();
+      s->init(s, vector<BasePromise>{});
+    }
+
+    PromiseAll(const PromiseAll&) = default;
+    PromiseAll(PromiseAll&& other) = default;
+    PromiseAll& operator=(const PromiseAll&) = default;
+
     /**
      * Construct a PromiseAll with the vector of BasePromises that it will monitor for resolution/rejection.
      * @param promises The vector of BasePromises.
      */
-    PromiseAll(vector<JSLike::BasePromise> promises)
+    PromiseAll(vector<BasePromise> promises)
     {
       auto s = state();
       s->init(s, promises);
     }
 
     PromiseAll Then(std::function<void(PromiseAll::ResultType)> thenLambda) {
-      PromiseAll chainedPromise;
+      PromiseAll chainedPromise(false);
       std::shared_ptr<PromiseAllState> chainedPromiseState = chainedPromise.state();
 
       auto currentState = state();
@@ -122,7 +136,7 @@ namespace JSLike {
     }
 
     PromiseAll Catch(std::function<void(std::exception_ptr)> catchLambda) {
-      PromiseAll chainedPromise;
+      PromiseAll chainedPromise(false);
       auto chainedPromiseState = chainedPromise.state();
 
       auto currentState = state();
@@ -144,7 +158,7 @@ namespace JSLike {
     }
 
     PromiseAll Then(std::function<void(PromiseAll::ResultType)> thenLambda, std::function<void(std::exception_ptr)> catchLambda) {
-      PromiseAll chainedPromise;
+      PromiseAll chainedPromise(false);
       std::shared_ptr<PromiseAllState> chainedPromiseState = chainedPromise.state();
 
       auto currentState = state();
@@ -193,7 +207,7 @@ namespace JSLike {
        *         by co_retrun.
        */
       PromiseAll get_return_object() {
-        PromiseAll p;
+        PromiseAll p(false);
         m_state = p.state();
         return p;
       }
@@ -229,8 +243,7 @@ namespace JSLike {
     };
 
 
-  private:
-    PromiseAll() = default;
+  public:
 
     std::shared_ptr<PromiseAllState> state() {
       if (!m_state) m_state = std::make_shared<PromiseAllState>();
@@ -238,5 +251,13 @@ namespace JSLike {
       auto castState = std::dynamic_pointer_cast<JSLike::PromiseAllState>(m_state);
       return castState;
     }
+
+  private:
+    PromiseAll(bool isResolved) {
+      auto s = state();
+      if(isResolved)
+        s->init(s, vector<BasePromise>{});
+    }
+
   }; // PromiseAll
 }; // namespace JSLike

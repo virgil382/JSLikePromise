@@ -138,6 +138,11 @@ namespace TestJSLikeValuedPromise
 			co_return true;
 		}
 
+		Promise<int> CoroutineThatThrows() {
+			char c = std::string().at(1); // this throws a std::out_of_range
+			co_return 1;
+		}
+
 	public:
 		TEST_METHOD(Preresolved_Then)
 		{
@@ -200,6 +205,26 @@ namespace TestJSLikeValuedPromise
 			Assert::IsFalse(wasThenCalled);
 			p0state->resolve(1);
 			Assert::IsTrue(wasThenCalled);
+		}
+
+		TEST_METHOD(throw_Catch)
+		{
+			bool wasExceptionThrown = false;
+
+			CoroutineThatThrows().Catch([&](std::exception_ptr eptr)
+				{
+					if (!eptr) Assert::Fail();
+
+					try {
+						std::rethrow_exception(eptr);
+					}
+					catch (std::exception& e) {
+						if (e.what() == string("invalid string position"))
+							wasExceptionThrown = true;
+					}
+				});
+
+			Assert::IsTrue(wasExceptionThrown);
 		}
 	};
 	//***************************************************************************************
@@ -721,29 +746,6 @@ namespace TestJSLikeValuedPromise
 		}
 	};
 	//***************************************************************************************
-	TEST_CLASS(TestCoroutineCallsCoroutineThatResolvesImmediately1)
-	{
-	private:
-		Promise<int> myCoroutine0() {
-			int val = co_await myCoroutine1();
-			co_return val;
-		}
-
-		Promise<int> myCoroutine1() {
-			co_return 3;
-		}
-
-	public:
-
-		TEST_METHOD(GetResultAfterSleeping)
-		{
-			Promise<int> result = myCoroutine0();  // Should get resolved to 2 after 1sec
-
-			Assert::AreEqual(true, result.isResolved());
-			Assert::AreEqual(3, result.value());
-		}
-	};
-
 	TEST_CLASS(TestCoroutineCallsCoroutineThatResolvesImmediately2)
 	{
 	private:
@@ -769,37 +771,6 @@ namespace TestJSLikeValuedPromise
 					});
 
 			Assert::IsTrue(wasThenCalled);
-		}
-	};
-	//***************************************************************************************
-	TEST_CLASS(TestFunctionCallsCoroutineThatDoesNotSuspendAndThrows)
-	{
-	private:
-		Promise<int> myCoroutine0() {
-			char c = std::string().at(1); // this generates an std::out_of_range
-			co_return 1;
-		}
-
-	public:
-		TEST_METHOD(GetExceptionWithCatch)
-		{
-			bool wasExceptionThrown = false;
-
-			// From a regular function, call a coroutine that returns immediately.
-			myCoroutine0().Catch([&](std::exception_ptr eptr)
-				{
-					if(!eptr) Assert::Fail();
-
-					try {
-						std::rethrow_exception(eptr);
-					}
-					catch (std::exception &e) {
-						if (e.what() == string("invalid string position"))
-							wasExceptionThrown = true;
-					}
-				});
-
-			Assert::IsTrue(wasExceptionThrown);
 		}
 	};
 	//***************************************************************************************
