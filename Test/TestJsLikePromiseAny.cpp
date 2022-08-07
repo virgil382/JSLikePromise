@@ -23,7 +23,7 @@ namespace TestJSLikePromiseAny
 	TEST_CLASS(TestResolution)
 	{
 	public:
-		TEST_METHOD(TestWithSomePreresolved_Then)
+		TEST_METHOD(SomePreresolved_Then)
 		{
 			// Create a few Promises to give to PromiseAny
 			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // resolved later
@@ -42,7 +42,7 @@ namespace TestJSLikePromiseAny
 			Assert::IsTrue(areSomeResolved);
 		}
 
-		TEST_METHOD(TestWithNonePreresolved_Then)
+		TEST_METHOD(NonePreresolved_Then)
 		{
 			// Create a few Promises to give to PromiseAny
 			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();        // resolved later
@@ -63,7 +63,7 @@ namespace TestJSLikePromiseAny
 			Assert::IsTrue(areSomeResolved);
 		}
 
-		TEST_METHOD(TestWithSomePreresolved_Then_Then)
+		TEST_METHOD(SomePreresolved_Then_Then)
 		{
 			// Create a few Promises to give to PromiseAny
 			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // never resolved
@@ -86,7 +86,7 @@ namespace TestJSLikePromiseAny
 				Assert::AreEqual(2, nThenCalls);
 		}
 
-		TEST_METHOD(TestWithSomePreresolved_Catch_Then)
+		TEST_METHOD(SomePreresolved_Catch_Then)
 		{
 			// Create a few Promises to give to PromiseAny
 			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // never resolved
@@ -109,7 +109,7 @@ namespace TestJSLikePromiseAny
 			Assert::AreEqual(0, nCatchCalls);
 		}
 
-		TEST_METHOD(TestWithSomePreresolved_Then_Catch)
+		TEST_METHOD(SomePreresolved_Then_Catch)
 		{
 			// Create a few Promises to give to PromiseAny
 			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // never resolved
@@ -132,7 +132,7 @@ namespace TestJSLikePromiseAny
 			Assert::AreEqual(0, nCatchCalls);
 		}
 
-		TEST_METHOD(TestWithSomePreresolved_ThenCatch)
+		TEST_METHOD(SomePreresolved_ThenCatch)
 		{
 			// Create a few Promises to give to PromiseAny
 			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // never resolved
@@ -155,7 +155,7 @@ namespace TestJSLikePromiseAny
 				Assert::AreEqual(0, nCatchCalls);
 		}
 
-		TEST_METHOD(TestWithSomePreresolved_ThenCatch_Then)
+		TEST_METHOD(SomePreresolved_ThenCatch_Then)
 		{
 			// Create a few Promises to give to PromiseAny
 			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // never resolved
@@ -183,7 +183,7 @@ namespace TestJSLikePromiseAny
 			Assert::AreEqual(0, nCatchCalls);
 		}
 
-		TEST_METHOD(TestWithNonePreresolved_Then_Then)
+		TEST_METHOD(NonePreresolved_Then_Then)
 		{
 			// Create a few Promises to give to PromiseAny
 			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();        // never resolved
@@ -208,7 +208,7 @@ namespace TestJSLikePromiseAny
 				Assert::AreEqual(2, nThenCalls);
 		}
 
-		TEST_METHOD(TestWithNonePreresolved_Then_Catch)
+		TEST_METHOD(NonePreresolved_Then_Catch)
 		{
 			// Create a few Promises to give to PromiseAny
 			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();        // never resolved
@@ -233,7 +233,7 @@ namespace TestJSLikePromiseAny
 				Assert::AreEqual(0, nCatchCalls);
 		}
 
-		TEST_METHOD(TestWithNonePreresolved_ThenCatch)
+		TEST_METHOD(NonePreresolved_ThenCatch)
 		{
 			// Create a few Promises to give to PromiseAny
 			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();        // never resolved
@@ -259,7 +259,7 @@ namespace TestJSLikePromiseAny
 			Assert::AreEqual(0, nCatchCalls);
 		}
 
-		TEST_METHOD(TestWithNonePreresolved_ThenCatch_Then)
+		TEST_METHOD(NonePreresolved_ThenCatch_Then)
 		{
 			// Create a few Promises to give to PromiseAny
 			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();        // never resolved
@@ -290,7 +290,7 @@ namespace TestJSLikePromiseAny
 			Assert::AreEqual(0, nCatchCalls);
 		}
 
-		TEST_METHOD(TestWithNonePreresolved_Catch_Then)
+		TEST_METHOD(NonePreresolved_Catch_Then)
 		{
 			// Create a few Promises to give to PromiseAny
 			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();        // never resolved
