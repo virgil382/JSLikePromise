@@ -247,6 +247,16 @@ namespace TestJSLikePromiseAny
 			co_return true;
 		}
 
+		Promise<bool> myCoAwaitingCoroutineThatCatches(PromiseAny& p) {
+			try {
+				auto result = co_await p;
+			}
+			catch (exception ex) {
+				co_return true;
+			}
+			co_return false;
+		}
+
 	public:
 		TEST_METHOD(Preresolved)
 		{
@@ -274,6 +284,45 @@ namespace TestJSLikePromiseAny
 			p0state->resolve(1);
 			Assert::IsTrue(result.isResolved());
 			Assert::IsTrue(result.value() == true);
+		}
+
+		TEST_METHOD(Reject_try_catch)
+		{
+			// Create 3 Promises to give to PromiseAny.  Save their PromiseStates.
+			auto [p0, p0state] = Promise<bool>::getUnresolvedPromiseAndState();
+			auto [p1, p1state] = Promise<string>::getUnresolvedPromiseAndState();
+			auto [p2, p2state] = Promise<double>::getUnresolvedPromiseAndState();
+			auto pa = PromiseAny({ p0, p1, p2 });
+
+			auto result = myCoAwaitingCoroutineThatCatches(pa);
+
+			Assert::IsFalse(result.isResolved());
+
+			// Reject p1.  The "Catch" Lambda should be called.
+			p1state->reject(make_exception_ptr(out_of_range("invalid string position")));
+
+			Assert::IsTrue(result.isResolved());
+			Assert::AreEqual(true, result.value());
+		}
+
+		TEST_METHOD(Reject_uncaught)
+		{
+			// Create 3 Promises to give to PromiseAny.  Save their PromiseStates.
+			auto [p0, p0state] = Promise<bool>::getUnresolvedPromiseAndState();
+			auto [p1, p1state] = Promise<string>::getUnresolvedPromiseAndState();
+			auto [p2, p2state] = Promise<double>::getUnresolvedPromiseAndState();
+			auto pa = PromiseAny({ p0, p1, p2 });
+
+			auto result = myCoAwaitingCoroutine(pa);
+
+			Assert::IsFalse(result.isResolved());
+			Assert::IsFalse(result.isRejected());
+
+			// Reject p1.  The "Catch" Lambda should be called.
+			p1state->reject(make_exception_ptr(out_of_range("invalid string position")));
+
+			Assert::IsFalse(result.isResolved());
+			Assert::IsTrue(result.isRejected());
 		}
 	};
 	//***************************************************************************************
