@@ -117,7 +117,7 @@ namespace TestJSLikeValuedPromise
 			Assert::IsTrue(wasThenCalled);
 		}
 
-		TEST_METHOD(ResolvedLater_co_await)
+		TEST_METHOD(Preresolved_co_await)
 		{
 			auto result = CoAwait(1);
 
