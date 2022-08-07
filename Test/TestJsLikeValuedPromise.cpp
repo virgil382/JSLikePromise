@@ -98,13 +98,21 @@ namespace TestJSLikeValuedPromise
 			co_return val;
 		}
 
-		Promise<int> CoAwait(int val) {
-			co_await CoReturnPromise(val);
+		Promise<bool> CoAwait(int val) {
+			auto result = co_await CoReturnPromise(val);
+			Assert::AreEqual(result, val);
 			co_return true;
 		}
 
 	public:
-		TEST_METHOD(Preresolved_Then)
+		TEST_METHOD(Co_await)
+		{
+			auto result = CoAwait(1);
+
+			Assert::IsTrue(result.isResolved());
+			Assert::IsTrue(result.value() == true);
+		}
+		TEST_METHOD(Then)
 		{
 			bool wasThenCalled = false;
 			CoReturnPromise(1).Then(
@@ -115,14 +123,6 @@ namespace TestJSLikeValuedPromise
 				});
 
 			Assert::IsTrue(wasThenCalled);
-		}
-
-		TEST_METHOD(Preresolved_co_await)
-		{
-			auto result = CoAwait(1);
-
-			Assert::IsTrue(result.isResolved());
-			Assert::IsTrue(result.value() == 1);
 		}
 	};
 	//***************************************************************************************
@@ -767,77 +767,6 @@ namespace TestJSLikeValuedPromise
 						Assert::AreEqual(3, val);
 						wasThenCalled = true;
 					});
-
-			Assert::IsTrue(wasThenCalled);
-		}
-	};
-	//***************************************************************************************
-	TEST_CLASS(TestCoroutineCallsCoroutineThatResolvesAfter1Sec1)
-	{
-	private:
-		Promise<int> myCoroutine0() {
-			int val = co_await myCoroutine1();
-			co_return val;
-		}
-
-		Promise<int> myCoroutine1() {
-			co_return co_await resolveAfter1Sec();
-		}
-
-		std::shared_ptr<PromiseState<int>> m_promiseState;
-		Promise<int> resolveAfter1Sec() {
-			return Promise<int>([this](auto promiseState)
-				{
-					m_promiseState = promiseState;  // save off the state so we can resolve the promise later
-				});
-		}
-
-	public:
-		TEST_METHOD(GetResultAfterSleeping)
-		{
-			Promise<int> result = myCoroutine0();  // Should get resolved to 2 after 1sec
-
-			Assert::IsFalse(m_promiseState->isResolved());
-			m_promiseState->resolve(3);  // Resolve to 3
-			Assert::IsTrue(m_promiseState->isResolved());
-			Assert::AreEqual(3, m_promiseState->value());
-		}
-	};
-
-	TEST_CLASS(TestCoroutineCallsCoroutineThatResolvesAfter1Sec2)
-	{
-	private:
-
-		Promise<int> myCoroutine0() {
-			int val = co_await myCoroutine1();
-			co_return val;
-		}
-
-		Promise<int> myCoroutine1() {
-			co_return co_await resolveAfter1Sec();
-		}
-
-		std::shared_ptr<PromiseState<int>> m_promiseState;
-		Promise<int> resolveAfter1Sec() {
-			return Promise<int>([this](auto promiseState)
-				{
-					m_promiseState = promiseState;  // save off the state so we can resolve the promise later
-				});
-		}
-
-	public:
-		TEST_METHOD(GetResultWithThen)
-		{
-			bool wasThenCalled = false;
-
-			myCoroutine0()
-				.Then([&](int val)
-					{
-						Assert::AreEqual(4, val);
-						wasThenCalled = true;
-					});
-
-			m_promiseState->resolve(4);  // Resolve to 4
 
 			Assert::IsTrue(wasThenCalled);
 		}
