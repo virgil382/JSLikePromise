@@ -126,7 +126,7 @@ namespace JSLike {
       // Note that the Lambdas only operate on the PromiseState of each Promise.  The Promises are just
       // "handles" to the Promise states.
       auto currentState = state();
-      currentState->ThenCatch(
+      currentState->BasePromiseState::Then(
         // Then Lambda
         [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resolvedState)
         {
@@ -153,10 +153,36 @@ namespace JSLike {
       // When this Promise gets settled, one of the following two Lambdas will settle the "chained" promise.
       // Note that the Lambdas only operate on the PromiseState of each Promise.  The Promises are just
       // "handles" to the Promise states.
-      currentState->ThenCatch(
+      currentState->BasePromiseState::Then(
         // Then Lambda
         [chainedPromiseState](shared_ptr<BasePromiseState> resolvedState)
         {
+          chainedPromiseState->resolve(resolvedState);
+        },
+        // Catch Lambda
+        [chainedPromiseState, catchLambda](auto ex)
+        {
+          catchLambda(ex);
+          chainedPromiseState->reject(ex);
+        });
+
+      return chainedPromise;
+    }
+
+    PromiseAny Then(std::function<void(shared_ptr<BasePromiseState>)> thenLambda, std::function<void(std::exception_ptr)> catchLambda) {
+      PromiseAny chainedPromise;  // The new "chained" Promise that we'll return to the caller.
+      auto chainedPromiseState = chainedPromise.state();
+
+      // Create a "bridge" between the current Promise and the new "chained" Promise that we'll return.
+      // When this Promise gets settled, one of the following two Lambdas will settle the "chained" promise.
+      // Note that the Lambdas only operate on the PromiseState of each Promise.  The Promises are just
+      // "handles" to the Promise states.
+      auto currentState = state();
+      currentState->BasePromiseState::Then(
+        // Then Lambda
+        [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resolvedState)
+        {
+          thenLambda(resolvedState);
           chainedPromiseState->resolve(resolvedState);
         },
         // Catch Lambda

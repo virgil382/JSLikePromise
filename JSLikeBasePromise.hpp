@@ -101,13 +101,13 @@ namespace JSLike {
     template<typename T>
     T &value() {
       JSLike::PromiseState<T>* castState = dynamic_cast<JSLike::PromiseState<T> *>(this);
-if (!castState) {
-  string err("bad cast from BasePromiseState to PromiseState<");
-  err += typeid(T).name();
-  err += ">";
-  throw std::bad_cast::__construct_from_string_literal(err.c_str());
-}
-return castState->value();
+      if (!castState) {
+        string err("bad cast from BasePromiseState to PromiseState<");
+        err += typeid(T).name();
+        err += ">";
+        throw std::bad_cast::__construct_from_string_literal(err.c_str());
+      }
+      return castState->value();
     }
 
     /**
@@ -202,7 +202,7 @@ return castState->value();
     }
 
     // Why beat around the bush.  Do both at the same time.
-    void ThenCatch(function<void(shared_ptr<BasePromiseState>)> thenLambda, function<void(std::exception_ptr)> catchLambda) {
+    void Then(function<void(shared_ptr<BasePromiseState>)> thenLambda, function<void(std::exception_ptr)> catchLambda) {
       Then(thenLambda);
       Catch(catchLambda);
     }
@@ -286,6 +286,22 @@ return castState->value();
       return chainedPromise;
     }
 
+    BasePromise Then(function<void(shared_ptr<BasePromiseState>)> thenLambda, function<void(std::exception_ptr)> catchLambda) {
+      BasePromise chainedPromise;
+      auto chainedPromiseState = chainedPromise.state();
+      state()->Then([chainedPromiseState, thenLambda](auto resolvedState)
+        {
+          thenLambda(resolvedState);
+          chainedPromiseState->resolve(resolvedState);
+        },
+        [chainedPromiseState, catchLambda](auto ex)
+        {
+          catchLambda(ex);
+          chainedPromiseState->reject(ex);
+        });
+
+      return chainedPromise;
+    }
 
     /**
      * promise_type_base is the base class for promise_type implemented by various Promises derived

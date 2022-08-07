@@ -296,6 +296,61 @@ namespace TestJSLikePromiseAll
 			Assert::AreEqual(0, nCatchCalls);
 		}
 
+		TEST_METHOD(TestWithAllPreresolved_ThenCatch)
+		{
+			// Create a few Promises to give to PromiseAll
+			Promise<> p0;                                                    // preresolved
+			Promise<int> p1(1);                                              // preresolved
+			Promise<string> p2("Hello");                                     // preresolved
+			Promise<double> p3(3.3);                                         // preresolved
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			PromiseAll pa = PromiseAll({ p0, p1, p2, p3 }).Then(
+				[&](auto states)
+				{
+					Assert::AreEqual(1, states[1]->value<int>());
+					Assert::AreEqual(std::string("Hello"), states[2]->value<std::string>());
+					Assert::AreEqual(3.3, states[3]->value<double>());
+					nThenCalls++;
+				},
+				[&](auto ex) { nCatchCalls++; });
+
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(TestWithAllPreresolved_ThenCatch_Then)
+		{
+			// Create a few Promises to give to PromiseAll
+			Promise<> p0;                                                    // preresolved
+			Promise<int> p1(1);                                              // preresolved
+			Promise<string> p2("Hello");                                     // preresolved
+			Promise<double> p3(3.3);                                         // preresolved
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			PromiseAll pa = PromiseAll({ p0, p1, p2, p3 }).Then(
+				[&](auto states)
+				{
+					Assert::AreEqual(1, states[1]->value<int>());
+					Assert::AreEqual(std::string("Hello"), states[2]->value<std::string>());
+					Assert::AreEqual(3.3, states[3]->value<double>());
+					nThenCalls++;
+				},
+				[&](auto ex) { nCatchCalls++; }).Then(
+				[&](auto states)
+				{
+					Assert::AreEqual(1, states[1]->value<int>());
+					Assert::AreEqual(std::string("Hello"), states[2]->value<std::string>());
+					Assert::AreEqual(3.3, states[3]->value<double>());
+					nThenCalls++;
+				});
+
+			Assert::AreEqual(2, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
 		TEST_METHOD(TestWithAllPreresolved_Catch_Then)
 		{
 			// Create a few Promises to give to PromiseAll
@@ -404,6 +459,69 @@ namespace TestJSLikePromiseAll
 			Assert::AreEqual(0, nCatchCalls);
 			p0state->resolve();  // Resolve
 			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(TestWithSomePreresolved_ThenCatch)
+		{
+			// Create a few Promises to give to PromiseAll
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // resolved later
+			Promise<int> p1(1);                                              // preresolved
+			Promise<string> p2("Hello");                                     // preresolved
+			Promise<double> p3(3.3);                                         // preresolved
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			PromiseAll pa = PromiseAll({ p0, p1, p2, p3 }).Then(
+				[&](auto states)
+				{
+					Assert::AreEqual(1, states[1]->value<int>());
+					Assert::AreEqual(std::string("Hello"), states[2]->value<std::string>());
+					Assert::AreEqual(3.3, states[3]->value<double>());
+					nThenCalls++;
+				},
+				[&](auto ex) { nCatchCalls++; });
+
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+			p0state->resolve();  // Resolve
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(TestWithSomePreresolved_ThenCatch_Then)
+		{
+			// Create a few Promises to give to PromiseAll
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // resolved later
+			Promise<int> p1(1);                                              // preresolved
+			Promise<string> p2("Hello");                                     // preresolved
+			Promise<double> p3(3.3);                                         // preresolved
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			PromiseAll pa = PromiseAll({ p0, p1, p2, p3 }).Then(
+				[&](auto states)
+				{
+					Assert::AreEqual(1, states[1]->value<int>());
+					Assert::AreEqual(std::string("Hello"), states[2]->value<std::string>());
+					Assert::AreEqual(3.3, states[3]->value<double>());
+					nThenCalls++;
+				},
+				[&](auto ex) { nCatchCalls++; }).Then(
+				[&](auto states)
+				{
+					Assert::AreEqual(1, states[1]->value<int>());
+					Assert::AreEqual(std::string("Hello"), states[2]->value<std::string>());
+					Assert::AreEqual(3.3, states[3]->value<double>());
+					nThenCalls++;
+				});
+
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+			p0state->resolve();  // Resolve
+			Assert::AreEqual(2, nThenCalls);
 			Assert::AreEqual(0, nCatchCalls);
 		}
 

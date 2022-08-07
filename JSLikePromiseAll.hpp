@@ -104,7 +104,7 @@ namespace JSLike {
       std::shared_ptr<PromiseAllState> chainedPromiseState = chainedPromise.state();
 
       auto currentState = state();
-      currentState->ThenCatch(
+      currentState->Then(
         // Then Lambda
         [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
         {
@@ -126,7 +126,7 @@ namespace JSLike {
       auto chainedPromiseState = chainedPromise.state();
 
       auto currentState = state();
-      currentState->ThenCatch(
+      currentState->Then(
         // Then Lambda
         [chainedPromiseState] (shared_ptr<BasePromiseState> resultState)
         {
@@ -135,6 +135,29 @@ namespace JSLike {
         },
         // Catch Lambda
         [chainedPromiseState, catchLambda] (auto ex)
+        {
+          catchLambda(ex);
+          chainedPromiseState->reject(ex);
+        });
+
+      return chainedPromise;
+    }
+
+    PromiseAll Then(std::function<void(PromiseAll::ResultType)> thenLambda, std::function<void(std::exception_ptr)> catchLambda) {
+      PromiseAll chainedPromise;
+      std::shared_ptr<PromiseAllState> chainedPromiseState = chainedPromise.state();
+
+      auto currentState = state();
+      currentState->Then(
+        // Then Lambda
+        [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
+        {
+          auto const& result(resultState->value<PromiseAll::ResultType>());
+          thenLambda(result);
+          chainedPromiseState->resolve(result);
+        },
+        // Catch Lambda
+        [chainedPromiseState, catchLambda](auto ex)
         {
           catchLambda(ex);
           chainedPromiseState->reject(ex);
