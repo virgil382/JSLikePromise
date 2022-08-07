@@ -91,6 +91,41 @@ namespace TestJSLikeValuedPromise
 		}
 	};
 	//***************************************************************************************
+	TEST_CLASS(Test_co_return_Value)
+	{
+	private:
+		Promise<int> CoReturnPromise(int val) {
+			co_return val;
+		}
+
+		Promise<int> CoAwait(int val) {
+			co_await CoReturnPromise(val);
+			co_return true;
+		}
+
+	public:
+		TEST_METHOD(Preresolved_Then)
+		{
+			bool wasThenCalled = false;
+			CoReturnPromise(1).Then(
+				[&](auto result)
+				{
+					Assert::AreEqual(1, result);
+					wasThenCalled = true;
+				});
+
+			Assert::IsTrue(wasThenCalled);
+		}
+
+		TEST_METHOD(ResolvedLater_co_await)
+		{
+			auto result = CoAwait(1);
+
+			Assert::IsTrue(result.isResolved());
+			Assert::IsTrue(result.value() == 1);
+		}
+	};
+	//***************************************************************************************
 	TEST_CLASS(Test_co_return_ValuedPromise)
 	{
 	private:
