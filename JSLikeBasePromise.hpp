@@ -15,9 +15,11 @@ namespace JSLike {
   struct PromiseAllState;
   struct PromiseAll;
   struct PromiseAny;
+  template<typename T> struct Promise;
 
   // Forward declaration for dynamic_cast
   template<typename T> struct PromiseState;
+
 
 
   /**
@@ -45,7 +47,7 @@ namespace JSLike {
    *    passed to it as an argument.  The "Catch" Lambda may rethrow, catch, and handle
    *    it if it wants.
    */
-  struct BasePromiseState {
+  struct BasePromiseState : public enable_shared_from_this<BasePromiseState> {
     BasePromiseState() : m_isResolved(false) {}
 
     // Don't allow copies of any kind.  Always use std::shared_ptr to instances of this type.
@@ -59,13 +61,18 @@ namespace JSLike {
      * Resolve the BasePromise, and resume the coroutine or execute the "Then" Lambda.
      */
     void resolve() {
+      resolve(shared_from_this());
+    }
+
+    void resolve(shared_ptr<BasePromiseState> state) {
       if (m_eptr || m_isResolved) return;  // prevent multiple rejection/resolution
       m_isResolved = true;
 
       if (m_h.address() != nullptr) {
         m_h();
-      } else if (m_thenVoidLambda) {
-        m_thenVoidLambda();
+      }
+      else if (m_thenLambda) {
+        m_thenLambda(state);
       }
     }
 
@@ -92,27 +99,27 @@ namespace JSLike {
      *        resolvedd, then the returned value is undefined.
      */
     template<typename T>
-    T value() {
+    T &value() {
       JSLike::PromiseState<T>* castState = dynamic_cast<JSLike::PromiseState<T> *>(this);
-      if (!castState) {
-        string err("bad cast from BasePromiseState to PromiseState<");
-        err += typeid(T).name();
-        err += ">";
-        throw std::bad_cast::__construct_from_string_literal(err.c_str());
-      }
-      return castState->value();
+if (!castState) {
+  string err("bad cast from BasePromiseState to PromiseState<");
+  err += typeid(T).name();
+  err += ">";
+  throw std::bad_cast::__construct_from_string_literal(err.c_str());
+}
+return castState->value();
     }
 
     /**
      * Resolve a PromiseState<T>.  Use this method when you know that your BasePromiseState is a
      * PromiseState<T>.  This allows you to store references to PromiseState<T>s as BasePromiseStates,
      * and to operate on them as PromiseState<T>s.
-     * 
+     *
      * @param value The value to which to resolve the PromiseState.
      */
     template<typename T>
-    void resolve(T const &value) {
-      JSLike::PromiseState<T> *castState = dynamic_cast<JSLike::PromiseState<T> *>(this);
+    void resolve(T const& value) {
+      JSLike::PromiseState<T>* castState = dynamic_cast<JSLike::PromiseState<T> *>(this);
       if (!castState) {
         string err("bad cast from BasePromiseState to PromiseState<");
         err += typeid(T).name();
@@ -172,16 +179,17 @@ namespace JSLike {
 
   protected:
     friend struct BasePromise;
+    friend struct Promise<void>;
     friend struct PromiseAllState;
     friend struct PromiseAll;
     friend struct PromiseAnyState;
     friend struct PromiseAny;
 
-    void Then(std::function<void()> thenVoidLambda) {
-      m_thenVoidLambda = thenVoidLambda;
+    virtual void Then(std::function<void(shared_ptr<BasePromiseState>)> thenLambda) {
+      m_thenLambda = thenLambda;
 
       if (m_isResolved) {
-        thenVoidLambda();
+        thenLambda(shared_from_this());
       }
     }
 
@@ -193,13 +201,19 @@ namespace JSLike {
       }
     }
 
-    std::function<void()>                   m_thenVoidLambda;  // TODO: Make this a list of Lambdas
+    // Why beat around the bush.  Do both at the same time.
+    void ThenCatch(function<void(shared_ptr<BasePromiseState>)> thenLambda, function<void(std::exception_ptr)> catchLambda) {
+      Then(thenLambda);
+      Catch(catchLambda);
+    }
 
-    mutable coroutine_handle<>              m_h;
-    bool                                    m_isResolved;
+    std::function<void(shared_ptr<BasePromiseState>)>    m_thenLambda;
 
-    std::function<void(std::exception_ptr)> m_catchLambda;
-    std::exception_ptr                      m_eptr;
+    mutable coroutine_handle<>                           m_h;
+    bool                                                 m_isResolved;
+
+    std::function<void(std::exception_ptr)>              m_catchLambda;
+    std::exception_ptr                                   m_eptr;
   };
 
 
@@ -239,22 +253,13 @@ namespace JSLike {
       return state()->isRejected();
     }
 
-    /**
-     * BasePromise.Then() is used by regular functions to specify a Lambda to be executed after the BasePromise
-     * is complete (i.e. the BasePromise::promise_type::return_value() was called).  The Lambda is saved in the
-     * BasePromiseState, so it exists for as long as the VoidePromiseState exists.  However, beware of the
-     * lifecycle of any variables that the Lambda may capture.
-     *
-     * @param thenVoidLambda A function to be called after the BasePromise is resolved.
-     * @return Another BasePromise that will be resolved when this BasePromise is resolved.
-     */
-    BasePromise Then(std::function<void()> thenVoidLambda) {
+    BasePromise Then(std::function<void(shared_ptr<BasePromiseState>)> thenLambda) {
       BasePromise chainedPromise;
       auto chainedPromiseState = chainedPromise.state();
-      state()->Then([chainedPromiseState, thenVoidLambda]()
+      state()->Then([chainedPromiseState, thenLambda](auto resolvedState)
         {
-          thenVoidLambda();
-          chainedPromiseState->resolve();
+          thenLambda(resolvedState);
+          chainedPromiseState->resolve(resolvedState);
         });
 
       return chainedPromise;

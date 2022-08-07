@@ -26,21 +26,43 @@ namespace JSLike {
     PromiseAnyState(PromiseAnyState&& other) = delete;
     PromiseAnyState& operator=(const PromiseAnyState&) = delete;
 
-    void init(std::shared_ptr<PromiseAnyState> thisState, std::vector<JSLike::BasePromise>& monitoredPromises)
+    void init(std::shared_ptr<PromiseAnyState> &thisState, std::vector<JSLike::BasePromise>& monitoredPromises)
     {
       for (size_t i = 0, vectorSize = monitoredPromises.size(); i < vectorSize; i++) {
-        auto monitoredPromiseState = monitoredPromises[i].m_state;
+        auto monitoredPromise = monitoredPromises[i];
+        auto monitoredPromiseState = monitoredPromise.m_state;
 
-        monitoredPromiseState->Then([thisState, monitoredPromiseState]()  // Note that the Lambda keeps a shared_ptr to this PromiseAllState
+        // May call BasePromiseState::Then()  or  PromiseAnyState::Then()
+        monitoredPromiseState->Then([thisState, monitoredPromiseState](shared_ptr<BasePromiseState> resultState)  // Note that the Lambda keeps a shared_ptr to this PromiseAllState
           {
-            thisState->resolve(monitoredPromiseState);
+            // Call PromiseAny::resolve()
+            thisState->resolve(resultState);
           });
 
-        monitoredPromiseState->Catch([thisState](auto ex)  // Note that the Lambda keeps a shared_ptr to this PromiseAllState
+        monitoredPromise.Catch([thisState](auto ex)  // Note that the Lambda keeps a shared_ptr to this PromiseAllState
           {
             thisState->reject(ex);
           });
+
+        // Optimization: If already resolved/rejected, then don't add any more "Then" or "Catch".
+        if (m_eptr || m_isResolved) return;
       }
+    }
+
+    // Overrie BasePromiseState::Then()
+    void Then(std::function<void(shared_ptr<BasePromiseState>)> thenLambda) override {
+      m_thenLambda = thenLambda;
+
+      if (m_isResolved) {
+        thenLambda(m_result); // Difference vs. BasePromiseState
+      }
+    }
+
+    // Override PromiseState::resolve()
+    void resolve(shared_ptr<BasePromiseState> const &result) override {
+      if (m_eptr || m_isResolved) return;
+      m_result = result;
+      BasePromiseState::resolve(result);  // Difference vs. PromiseState
     }
   };  // PromiseAnyState
 
@@ -74,9 +96,9 @@ namespace JSLike {
    * Coroutines can return a PromiseAny, which is "wired up" to settle at the same time and with
    * the same result as the PromiseAany resulting from co_return.
    */
-  struct PromiseAny : public Promise<std::shared_ptr<BasePromiseState>> {
+  struct PromiseAny : public BasePromise {
   public:
-    typedef std::shared_ptr<BasePromiseState> ResultType;
+    typedef shared_ptr<BasePromiseState> ResultType;
 
     /**
      * Construct a PromiseAny with the vector of BasePromises that it will monitor for resolution/rejection.
@@ -88,19 +110,63 @@ namespace JSLike {
       s->init(s, promises);
     }
 
-    PromiseAny& Then(std::function<void(ResultType)> thenLambda) {
-      state()->Then(thenLambda);
-      return *this;
+    shared_ptr<PromiseAnyState> state() {
+      if (!m_state) m_state = make_shared<PromiseAnyState>();
+
+      auto castState = dynamic_pointer_cast<PromiseAnyState>(m_state);
+      return castState;
     }
 
-    /**
-     * Called by coroutines when they co_await on a PromiseAny.
-     * @return A PromiseAny::awaiter_type that suspends/resumes the coroutine as needed, and that returns to
-     *         the coroutine the PromiseAny::ReturnType or rethrows an exception (e.g. for the coroutine to catch).
-     */
-    awaiter_type operator co_await() {
-      awaiter_type a(state());
-      return a;
+    PromiseAny Then(std::function<void(shared_ptr<BasePromiseState>)> thenLambda) {
+      PromiseAny chainedPromise;  // The new "chained" Promise that we'll return to the caller.
+      auto chainedPromiseState = chainedPromise.state();
+
+      // Create a "bridge" between the current Promise and the new "chained" Promise that we'll return.
+      // When this Promise gets settled, one of the following two Lambdas will settle the "chained" promise.
+      // Note that the Lambdas only operate on the PromiseState of each Promise.  The Promises are just
+      // "handles" to the Promise states.
+      auto currentState = state();
+      currentState->ThenCatch(
+        // Then Lambda
+        [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resolvedState)
+        {
+          thenLambda(resolvedState);
+          chainedPromiseState->resolve(resolvedState);
+        },
+        // Catch Lambda
+        [chainedPromiseState](exception_ptr ex)
+        {
+          chainedPromiseState->reject(ex);
+        }
+      );
+
+      return chainedPromise;
+    }
+
+    PromiseAny Catch(std::function<void(std::exception_ptr)> catchLambda) {
+      PromiseAny chainedPromise;
+      auto chainedPromiseState = chainedPromise.state();
+
+      auto currentState = state();
+
+      // Create a "bridge" between the current Promise and the new "chained" Promise that we'll return.
+      // When this Promise gets settled, one of the following two Lambdas will settle the "chained" promise.
+      // Note that the Lambdas only operate on the PromiseState of each Promise.  The Promises are just
+      // "handles" to the Promise states.
+      currentState->ThenCatch(
+        // Then Lambda
+        [chainedPromiseState](shared_ptr<BasePromiseState> resolvedState)
+        {
+          chainedPromiseState->resolve(resolvedState);
+        },
+        // Catch Lambda
+        [chainedPromiseState, catchLambda](auto ex)
+        {
+          catchLambda(ex);
+          chainedPromiseState->reject(ex);
+        });
+
+      return chainedPromise;
     }
 
     /**
@@ -138,29 +204,18 @@ namespace JSLike {
        *        evaluating the expression following co_return).
        */
       void return_value(PromiseAny coreturnedPromiseAny) {
-        auto savedPromiseAnyState = std::dynamic_pointer_cast<JSLike::PromiseAnyState>(m_state);
-
-        // If coreturnedPromiseAny is already rejected, then also reject savedPromiseAnyState.
-        if (coreturnedPromiseAny.m_state->isRejected()) {
-          savedPromiseAnyState->reject(coreturnedPromiseAny.m_state->m_eptr);
-          return;
-        }
-
-        // If coreturnedPromiseAny is already resolved, then resolve my state.
-        if (coreturnedPromiseAny.m_state->isResolved()) {
-          savedPromiseAnyState->resolve(coreturnedPromiseAny.state()->value());
-          return;
-        }
+        auto savedPromiseAnyState = std::dynamic_pointer_cast<PromiseAnyState>(m_state);
+        auto coreturnedPromiseAnyState = coreturnedPromiseAny.state();
 
         // Use a "Then" Lambda to get notified if coreturnedPromiseAll gets resolved.
-        coreturnedPromiseAny.Then([savedPromiseAnyState](auto result)
+        coreturnedPromiseAnyState->Then([savedPromiseAnyState, coreturnedPromiseAnyState](shared_ptr<BasePromiseState> resultState)
           {
             // coreturnedPromiseAny got resolved, so resolve savedPromiseAnyState
-            savedPromiseAnyState->resolve(result);
+            savedPromiseAnyState->resolve(coreturnedPromiseAnyState->m_result);
           });
 
         // Use a "Catch" Lambda to get notified if savedPromiseAnyState gets rejected.
-        coreturnedPromiseAny.Catch([savedPromiseAnyState](auto ex)
+        coreturnedPromiseAnyState->Catch([savedPromiseAnyState](auto ex)
           {
             // coreturnedPromiseAny got rejected, so reject savedPromiseAnyState
             savedPromiseAnyState->reject(ex);
@@ -169,14 +224,42 @@ namespace JSLike {
     };
 
 
+
+    struct awaiter_type : awaiter_type_base {
+      awaiter_type() = delete;
+      awaiter_type(const awaiter_type&) = delete;
+      awaiter_type(awaiter_type&& other) = default;
+      awaiter_type& operator=(const awaiter_type&) = delete;
+
+      awaiter_type(std::shared_ptr<BasePromiseState> state) : awaiter_type_base(state) {}
+
+      /**
+       * Called right before the call to co_await completes in order to return the result
+       * to the coroutine.
+       *
+       * @return The value with which resolve() was called.
+       */
+      shared_ptr<BasePromiseState> await_resume() const {
+        m_state->rethrowIfRejected();
+
+        shared_ptr<PromiseAnyState> castState = std::dynamic_pointer_cast<PromiseAnyState>(m_state);
+        return castState->m_result;
+      }
+    };
+
+    /**
+     * Called by coroutines when they co_await on a PromiseAny.
+     * @return A PromiseAny::awaiter_type that suspends/resumes the coroutine as needed, and that returns to
+     *         the coroutine the PromiseAny::ReturnType or rethrows an exception (e.g. for the coroutine to catch).
+     */
+    awaiter_type operator co_await() {
+      awaiter_type a(state());
+      return a;
+    }
+
+
   private:
     PromiseAny() = default;
 
-    std::shared_ptr<PromiseAnyState> state() {
-      if (!m_state) m_state = std::make_shared<PromiseAnyState>();
-
-      auto castState = std::dynamic_pointer_cast<JSLike::PromiseAnyState>(m_state);
-      return castState;
-    }
   }; // PromiseAny
 }; // namespace JSLike

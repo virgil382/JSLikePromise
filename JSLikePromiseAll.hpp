@@ -24,15 +24,18 @@ namespace JSLike {
     PromiseAllState(PromiseAllState&& other) = delete;
     PromiseAllState& operator=(const PromiseAllState&) = delete;
 
-    void init(std::shared_ptr<PromiseAllState> thisState, std::vector<JSLike::BasePromise>& monitoredPromises)
+    void init(std::shared_ptr<PromiseAllState> &thisState, std::vector<JSLike::BasePromise>& monitoredPromises)
     {
       m_nUnresolved = monitoredPromises.size();
 
-      for (auto monitoredPromise : monitoredPromises) {
+      for (size_t i = 0, vectorSize = monitoredPromises.size(); i < vectorSize; i++) {
+        auto monitoredPromise = monitoredPromises[i];
+
         m_promiseStates.push_back(monitoredPromise.m_state);
-        monitoredPromise.m_state->Then([thisState]()  // Note that the Lambda keeps a shared_ptr to this PromiseAllState
+        monitoredPromise.m_state->Then([thisState, i](shared_ptr<BasePromiseState> resolvedState)  // Note that the Lambda keeps a shared_ptr to this PromiseAllState
           {
             thisState->m_nUnresolved--;
+            thisState->m_promiseStates[i] = resolvedState;  // "bubble up" the resolved state by placing it in the array
             if (thisState->m_nUnresolved == 0) thisState->resolve(thisState->m_promiseStates);
           });
 
@@ -90,15 +93,54 @@ namespace JSLike {
      * Construct a PromiseAll with the vector of BasePromises that it will monitor for resolution/rejection.
      * @param promises The vector of BasePromises.
      */
-    PromiseAll(std::vector<JSLike::BasePromise> promises)
+    PromiseAll(vector<JSLike::BasePromise> promises)
     {
       auto s = state();
       s->init(s, promises);
     }
 
-    PromiseAll& Then(std::function<void(ResultType)> thenLambda) {
-      state()->Then(thenLambda);
-      return *this;
+    PromiseAll Then(std::function<void(PromiseAll::ResultType)> thenLambda) {
+      PromiseAll chainedPromise;
+      std::shared_ptr<PromiseAllState> chainedPromiseState = chainedPromise.state();
+
+      auto currentState = state();
+      currentState->ThenCatch(
+        // Then Lambda
+        [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
+        {
+          auto const& result(resultState->value<PromiseAll::ResultType>());
+          thenLambda(result);
+          chainedPromiseState->resolve(result);
+        },
+        // Catch Lambda
+        [chainedPromiseState](exception_ptr ex)
+        {
+          chainedPromiseState->reject(ex);
+        });
+
+      return chainedPromise;
+    }
+
+    PromiseAll Catch(std::function<void(std::exception_ptr)> catchLambda) {
+      PromiseAll chainedPromise;
+      auto chainedPromiseState = chainedPromise.state();
+
+      auto currentState = state();
+      currentState->ThenCatch(
+        // Then Lambda
+        [chainedPromiseState] (shared_ptr<BasePromiseState> resultState)
+        {
+          auto const& result(resultState->value<PromiseAll::ResultType>());
+          chainedPromiseState->resolve(result);
+        },
+        // Catch Lambda
+        [chainedPromiseState, catchLambda] (auto ex)
+        {
+          catchLambda(ex);
+          chainedPromiseState->reject(ex);
+        });
+
+      return chainedPromise;
     }
 
     /**
@@ -147,28 +189,17 @@ namespace JSLike {
        */
       void return_value(PromiseAll coreturnedPromiseAll) {
         auto savedPromiseAllState = std::dynamic_pointer_cast<JSLike::PromiseAllState>(m_state);
-
-        // If coreturnedPromiseAll is already rejected, then also reject savedPromiseAllState.
-        if (coreturnedPromiseAll.m_state->isRejected()) {
-          savedPromiseAllState->reject(coreturnedPromiseAll.m_state->m_eptr);
-          return;
-        }
-
-        // If coreturnedPromiseAll is already resolved, then resolve my state.
-        if (coreturnedPromiseAll.m_state->isResolved()) {
-          savedPromiseAllState->resolve(coreturnedPromiseAll.state()->value());
-          return;
-        }
+        auto coreturnedPromiseAllState = coreturnedPromiseAll.state();
 
         // Use a "Then" Lambda to get notified if coreturnedPromiseAll gets resolved.
-        coreturnedPromiseAll.Then([savedPromiseAllState](auto result)
+        coreturnedPromiseAllState->Then([savedPromiseAllState, coreturnedPromiseAllState](shared_ptr<BasePromiseState> result)
           {
             // coreturnedPromiseAll got resolved, so resolve savedPromiseAllState
-            savedPromiseAllState->resolve(result);
+            savedPromiseAllState->resolve(coreturnedPromiseAllState->value());
           });
 
         // Use a "Catch" Lambda to get notified if coreturnedPromiseAll gets rejected.
-        coreturnedPromiseAll.Catch([savedPromiseAllState](auto ex)
+        coreturnedPromiseAllState->Catch([savedPromiseAllState](auto ex)
           {
             // coreturnedPromiseAll got rejected, so reject savedPromiseAllState
             savedPromiseAllState->reject(ex);

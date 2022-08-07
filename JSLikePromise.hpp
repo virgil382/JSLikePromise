@@ -17,6 +17,7 @@ namespace JSLike {
   template<typename T> struct Promise;
   struct PromiseAll;
   struct PromiseAny;
+  struct PromiseAnyState;
 
 
   template<typename T=void>
@@ -32,22 +33,13 @@ namespace JSLike {
      * Resolve the Promise to the specified value, and resume the coroutine or
      * execute the "Then" Lambda.
      */
-    void resolve(T const &result) {
+    virtual void resolve(T const &result) {
       if (m_eptr || m_isResolved) return;  // prevent multiple rejection/resolution
-      m_isResolved = true;
       m_result = result;
-
-      if (m_h.address() != nullptr) {
-        m_h();
-      } else {
-        if (m_thenVoidLambda)
-          m_thenVoidLambda();
-        if (m_thenLambda)
-          m_thenLambda(m_result);
-      }
+      BasePromiseState::resolve(shared_from_this());
     }
 
-    T const &value() const {
+    T &value() {
       return m_result;
     }
 
@@ -55,19 +47,12 @@ namespace JSLike {
     friend struct Promise<T>;
     friend struct PromiseAll;
     friend struct PromiseAny;
+    friend struct PromiseAnyState;
 
-    void Then(std::function<void(T)> thenLambda) {
-      m_thenLambda = thenLambda;
-
-      if (m_isResolved) {
-        thenLambda(m_result);
-      }
-    }
-
-    std::function<void(T)>                  m_thenLambda;  // TODO: Make this a list of Lambdas
     T                                       m_result;
   };
 
+  /******************************************************************************************/
 
   template<>
   struct PromiseState<void> : public BasePromiseState {
@@ -79,7 +64,7 @@ namespace JSLike {
     PromiseState& operator=(const PromiseState&) = delete;
   };
 
-
+  /******************************************************************************************/
 
   template<typename T=void>
   struct Promise : public BasePromise {
@@ -121,16 +106,27 @@ namespace JSLike {
      * @return Another Promise<T> that will be resolved when this Promise<T> is resolved.
      */
     Promise Then(std::function<void(T)> thenLambda) {
-
-      // TODO: Consider calling the Lambda with the state, not with the value.  This will require the
-      // Lambda's implementation to retrieve the value from the state.
-
       Promise chainedPromise;
-      auto chainedPromiseState = chainedPromise.state();
-      state()->Then([chainedPromiseState, thenLambda](auto result)
+      std::shared_ptr<PromiseState<T>> chainedPromiseState = chainedPromise.state();
+
+      auto thisPromiseState = state();
+      thisPromiseState->Then([chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
         {
+          auto const &result(resultState->value<T>());
           thenLambda(result);
           chainedPromiseState->resolve(result);
+        });
+
+      return chainedPromise;
+    }
+
+    Promise Catch(std::function<void(exception_ptr)> catchLambda) {
+      Promise chainedPromise;
+      auto chainedPromiseState = chainedPromise.state();
+      state()->Catch([chainedPromiseState, catchLambda](auto ex)
+        {
+          catchLambda(ex);
+          chainedPromiseState->reject(ex);
         });
 
       return chainedPromise;
@@ -214,12 +210,32 @@ namespace JSLike {
   template<>
   struct Promise<void> : BasePromise {
   protected:
-    Promise() = default;
+    Promise(bool isResolved) {
+      if(isResolved)
+        state()->resolve();
+    }
   public:
+    Promise() {
+      state()->resolve();
+    }
 
     Promise(std::function<void(shared_ptr<PromiseState<>>)> initializer)
     {
       initializer(state());
+    }
+
+    Promise Then(std::function<void()> thenLambda) {
+      Promise chainedPromise;
+      auto chainedPromiseState = chainedPromise.state();
+
+      std::shared_ptr<PromiseState<>> thisPromiseState = state();
+      thisPromiseState->Then([chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
+        {
+          thenLambda();
+          chainedPromiseState->resolve();
+        });
+
+      return chainedPromise;
     }
 
     /**
@@ -229,7 +245,7 @@ namespace JSLike {
     struct promise_type : promise_type_base {
       // Called when a coroutine is invoked.  This method returns a BasePromise to the caller.
       Promise get_return_object() {
-        Promise p;
+        Promise p(false);
         m_state = p.state();
         return p;
       }
