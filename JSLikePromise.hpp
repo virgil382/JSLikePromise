@@ -105,25 +105,58 @@ namespace JSLike {
      * @param thenLambda A function to be called after the Promise is resolved.
      * @return Another Promise<T> that will be resolved when this Promise<T> is resolved.
      */
-    Promise Then(std::function<void(T)> thenLambda) {
+    Promise Then(function<void(T)> thenLambda) {
       Promise chainedPromise;
-      std::shared_ptr<PromiseState<T>> chainedPromiseState = chainedPromise.state();
+      shared_ptr<PromiseState<T>> chainedPromiseState = chainedPromise.state();
 
       auto thisPromiseState = state();
-      thisPromiseState->Then([chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
+      thisPromiseState->Then(
+        [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
         {
           auto const &result(resultState->value<T>());
           thenLambda(result);
           chainedPromiseState->resolve(result);
+        },
+        [chainedPromiseState](auto ex)
+        {
+          chainedPromiseState->reject(ex);
         });
 
       return chainedPromise;
     }
 
-    Promise Catch(std::function<void(exception_ptr)> catchLambda) {
+    Promise Catch(function<void(exception_ptr)> catchLambda) {
       Promise chainedPromise;
       auto chainedPromiseState = chainedPromise.state();
-      state()->Catch([chainedPromiseState, catchLambda](auto ex)
+      auto thisPromiseState = state();
+      thisPromiseState->Then(
+        [chainedPromiseState](shared_ptr<BasePromiseState> resultState)
+        {
+          auto const& result(resultState->value<T>());
+          chainedPromiseState->resolve(result);
+        },
+        [chainedPromiseState, catchLambda](auto ex)
+        {
+          catchLambda(ex);
+          chainedPromiseState->reject(ex);
+        });
+
+      return chainedPromise;
+    }
+
+    Promise Then(function<void(T)> thenLambda, function<void(exception_ptr)> catchLambda) {
+      Promise chainedPromise;
+      shared_ptr<PromiseState<T>> chainedPromiseState = chainedPromise.state();
+
+      auto thisPromiseState = state();
+      thisPromiseState->Then(
+        [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
+        {
+          auto const& result(resultState->value<T>());
+          thenLambda(result);
+          chainedPromiseState->resolve(result);
+        },
+        [chainedPromiseState, catchLambda](auto ex)
         {
           catchLambda(ex);
           chainedPromiseState->reject(ex);
@@ -146,8 +179,25 @@ namespace JSLike {
 
       // Called as a result of a coroutine calling co_return.
       void return_value(T val) {
-        auto castState = std::dynamic_pointer_cast<JSLike::PromiseState<T>>(m_state);
+        auto castState = dynamic_pointer_cast<PromiseState<T>>(m_state);
         castState->resolve(val);
+      }
+
+      void return_value(Promise coreturnedPromise) {
+        auto savedPromiseState = dynamic_pointer_cast<PromiseState<T>>(m_state);
+        auto coreturnedPromiseState = coreturnedPromise.state();
+
+        coreturnedPromiseState->Then(
+          [savedPromiseState, coreturnedPromiseState](shared_ptr<BasePromiseState> result)
+          {
+            // coreturnedPromise got resolved, so resolve savedPromiseState
+            savedPromiseState->resolve(coreturnedPromiseState->value());
+          },
+          [savedPromiseState](auto ex)
+          {
+            // coreturnedPromise got rejected, so reject savedPromiseState
+            savedPromiseState->reject(ex);
+          });
       }
     };
 
@@ -233,6 +283,10 @@ namespace JSLike {
         {
           thenLambda();
           chainedPromiseState->resolve();
+        },
+        [chainedPromiseState](auto ex)
+        {
+          chainedPromiseState->reject(ex);
         });
 
       return chainedPromise;

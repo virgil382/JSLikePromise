@@ -49,7 +49,7 @@ namespace JSLike {
       }
     }
 
-    // Overrie BasePromiseState::Then()
+    // Override BasePromiseState::Then()
     void Then(std::function<void(shared_ptr<BasePromiseState>)> thenLambda) override {
       m_thenLambda = thenLambda;
 
@@ -234,14 +234,14 @@ namespace JSLike {
         auto coreturnedPromiseAnyState = coreturnedPromiseAny.state();
 
         // Use a "Then" Lambda to get notified if coreturnedPromiseAll gets resolved.
-        coreturnedPromiseAnyState->Then([savedPromiseAnyState, coreturnedPromiseAnyState](shared_ptr<BasePromiseState> resultState)
+        coreturnedPromiseAnyState->BasePromiseState::Then(
+          [savedPromiseAnyState, coreturnedPromiseAnyState](shared_ptr<BasePromiseState> resultState)
           {
             // coreturnedPromiseAny got resolved, so resolve savedPromiseAnyState
             savedPromiseAnyState->resolve(coreturnedPromiseAnyState->m_result);
-          });
-
-        // Use a "Catch" Lambda to get notified if savedPromiseAnyState gets rejected.
-        coreturnedPromiseAnyState->Catch([savedPromiseAnyState](auto ex)
+          },
+          // Use a "Catch" Lambda to get notified if savedPromiseAnyState gets rejected.
+          [savedPromiseAnyState](auto ex)
           {
             // coreturnedPromiseAny got rejected, so reject savedPromiseAnyState
             savedPromiseAnyState->reject(ex);

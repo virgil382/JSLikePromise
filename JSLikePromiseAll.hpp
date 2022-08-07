@@ -214,15 +214,13 @@ namespace JSLike {
         auto savedPromiseAllState = std::dynamic_pointer_cast<JSLike::PromiseAllState>(m_state);
         auto coreturnedPromiseAllState = coreturnedPromiseAll.state();
 
-        // Use a "Then" Lambda to get notified if coreturnedPromiseAll gets resolved.
-        coreturnedPromiseAllState->Then([savedPromiseAllState, coreturnedPromiseAllState](shared_ptr<BasePromiseState> result)
+        coreturnedPromiseAllState->Then(
+          [savedPromiseAllState, coreturnedPromiseAllState](shared_ptr<BasePromiseState> result)
           {
             // coreturnedPromiseAll got resolved, so resolve savedPromiseAllState
             savedPromiseAllState->resolve(coreturnedPromiseAllState->value());
-          });
-
-        // Use a "Catch" Lambda to get notified if coreturnedPromiseAll gets rejected.
-        coreturnedPromiseAllState->Catch([savedPromiseAllState](auto ex)
+          },
+          [savedPromiseAllState](auto ex)
           {
             // coreturnedPromiseAll got rejected, so reject savedPromiseAllState
             savedPromiseAllState->reject(ex);

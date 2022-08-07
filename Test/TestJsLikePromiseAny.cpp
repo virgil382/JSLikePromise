@@ -573,6 +573,32 @@ namespace TestJSLikePromiseAny
 			Assert::AreEqual(2, nCatchCalls);
 		}
 
+		TEST_METHOD(Catch_Then)
+		{
+			// Create 3 Promises to give to PromiseAny.  Save their PromiseStates.
+			auto [p0, p0state] = Promise<bool>::getUnresolvedPromiseAndState();
+			auto [p1, p1state] = Promise<string>::getUnresolvedPromiseAndState();
+			auto [p2, p2state] = Promise<double>::getUnresolvedPromiseAndState();
+
+			// "Wire-up" the SUT.
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			PromiseAny pa = PromiseAny({ p0, p1, p2 })
+				.Catch([&](auto ex) { nCatchCalls++; })
+				.Then([&](auto result) { nThenCalls++; });
+
+			// Reject p1.  The "Catch" Lambda should be called.
+			p1state->reject(make_exception_ptr(out_of_range("invalid string position")));
+			// Reject p1 again to verify that Catch isn't called multiple times.
+			p1state->reject(make_exception_ptr(out_of_range("invalid string position")));
+
+			// Verify the result
+			Assert::IsTrue(pa.isRejected());
+			Assert::IsFalse(pa.isResolved());
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(1, nCatchCalls);
+		}
+
 		TEST_METHOD(Then_Catch)
 		{
 			// Create 3 Promises to give to PromiseAny.  Save their PromiseStates.
@@ -599,7 +625,7 @@ namespace TestJSLikePromiseAny
 			Assert::AreEqual(1, nCatchCalls);
 		}
 
-		TEST_METHOD(Catch_Then)
+		TEST_METHOD(ThenCatch)
 		{
 			// Create 3 Promises to give to PromiseAny.  Save their PromiseStates.
 			auto [p0, p0state] = Promise<bool>::getUnresolvedPromiseAndState();
@@ -609,9 +635,63 @@ namespace TestJSLikePromiseAny
 			// "Wire-up" the SUT.
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
-			PromiseAny pa = PromiseAny({ p0, p1, p2 })
-				.Catch([&](auto ex) { nCatchCalls++; })
-				.Then([&](auto result) { nThenCalls++; });
+			PromiseAny pa = PromiseAny({ p0, p1, p2 }).Then(
+				[&](auto result) { nThenCalls++; },
+				[&](auto ex) { nCatchCalls++; });
+
+			// Reject p1.  The "Catch" Lambda should be called.
+			p1state->reject(make_exception_ptr(out_of_range("invalid string position")));
+			// Reject p1 again to verify that Catch isn't called multiple times.
+			p1state->reject(make_exception_ptr(out_of_range("invalid string position")));
+
+			// Verify the result
+			Assert::IsTrue(pa.isRejected());
+			Assert::IsFalse(pa.isResolved());
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(1, nCatchCalls);
+		}
+
+		TEST_METHOD(ThenCatch_Catch)
+		{
+			// Create 3 Promises to give to PromiseAny.  Save their PromiseStates.
+			auto [p0, p0state] = Promise<bool>::getUnresolvedPromiseAndState();
+			auto [p1, p1state] = Promise<string>::getUnresolvedPromiseAndState();
+			auto [p2, p2state] = Promise<double>::getUnresolvedPromiseAndState();
+
+			// "Wire-up" the SUT.
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			PromiseAny pa = PromiseAny({ p0, p1, p2 }).Then(
+				[&](auto result) { nThenCalls++; },
+				[&](auto ex) { nCatchCalls++; }).Catch(
+				[&](auto ex) { nCatchCalls++; });
+
+			// Reject p1.  The "Catch" Lambda should be called.
+			p1state->reject(make_exception_ptr(out_of_range("invalid string position")));
+			// Reject p1 again to verify that Catch isn't called multiple times.
+			p1state->reject(make_exception_ptr(out_of_range("invalid string position")));
+
+			// Verify the result
+			Assert::IsTrue(pa.isRejected());
+			Assert::IsFalse(pa.isResolved());
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(2, nCatchCalls);
+		}
+
+		TEST_METHOD(ThenCatch_Then)
+		{
+			// Create 3 Promises to give to PromiseAny.  Save their PromiseStates.
+			auto [p0, p0state] = Promise<bool>::getUnresolvedPromiseAndState();
+			auto [p1, p1state] = Promise<string>::getUnresolvedPromiseAndState();
+			auto [p2, p2state] = Promise<double>::getUnresolvedPromiseAndState();
+
+			// "Wire-up" the SUT.
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			PromiseAny pa = PromiseAny({ p0, p1, p2 }).Then(
+				[&](auto result) { nThenCalls++; },
+				[&](auto ex) { nCatchCalls++; }).Then(
+				[&](auto result) { nThenCalls++; });
 
 			// Reject p1.  The "Catch" Lambda should be called.
 			p1state->reject(make_exception_ptr(out_of_range("invalid string position")));

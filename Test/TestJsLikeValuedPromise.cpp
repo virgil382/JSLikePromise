@@ -14,6 +14,319 @@ using namespace JSLike;
 
 namespace TestJSLikeValuedPromise
 {
+	TEST_CLASS(Test_co_await)
+	{
+	private:
+		Promise<bool> myCoAwaitingCoroutine(Promise<int> &p) {
+
+			auto result = co_await p;
+
+			Assert::AreEqual(1, result);
+
+			co_return true;
+		}
+
+		Promise<bool> myCoAwaitingCoroutineThatCatches(Promise<int> &p) {
+			try {
+				auto result = co_await p;
+			}
+			catch (exception ex) {
+				co_return true;
+			}
+			co_return false;
+		}
+
+	public:
+		TEST_METHOD(Preresolved)
+		{
+			Promise<int> p1(1);
+
+			auto result = myCoAwaitingCoroutine(p1);
+			Assert::IsTrue(result.isResolved());
+			Assert::IsTrue(result.value() == true);
+		}
+
+		TEST_METHOD(Reject_try_catch)
+		{
+			auto [p1, p1state] = Promise<int>::getUnresolvedPromiseAndState();
+
+			auto result = myCoAwaitingCoroutineThatCatches(p1);
+
+			Assert::IsFalse(result.isResolved());
+
+			// Reject p1.  An exception should be thrown in the coroutine.
+			p1state->reject(make_exception_ptr(out_of_range("invalid string position")));
+
+			Assert::IsTrue(result.isResolved());
+			Assert::AreEqual(true, result.value());
+		}
+
+		TEST_METHOD(Reject_uncaught)
+		{
+			// Create 3 Promises to give to PromiseAny.  Save their PromiseStates.
+			auto [p1, p1state] = Promise<int>::getUnresolvedPromiseAndState();
+
+			auto result = myCoAwaitingCoroutine(p1);
+
+			Assert::IsFalse(result.isResolved());
+			Assert::IsFalse(result.isRejected());
+
+			// Reject p1.  An exception should be thrown in the coroutine.
+			p1state->reject(make_exception_ptr(out_of_range("invalid string position")));
+
+			Assert::IsFalse(result.isResolved());
+			Assert::IsTrue(result.isRejected());
+		}
+
+		TEST_METHOD(ResolvedLater)
+		{
+			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();
+
+			auto result = myCoAwaitingCoroutine(p0);
+
+			Assert::IsFalse(result.isResolved());
+			p0state->resolve(1);
+			Assert::IsTrue(result.isResolved());
+			Assert::IsTrue(result.value() == true);
+		}
+	};
+	//***************************************************************************************
+	TEST_CLASS(Test_co_return_ValuedPromise)
+	{
+	private:
+		Promise<int> CoReturnPromise(Promise<int>& p) {
+			co_return p;
+		}
+
+		Promise<bool> CoAwait(Promise<int>& p) {
+			co_await CoReturnPromise(p);
+			co_return true;
+		}
+
+	public:
+		TEST_METHOD(Preresolved_Then)
+		{
+			auto p1 = Promise<int>(1);
+
+			bool wasThenCalled = false;
+			CoReturnPromise(p1).Then(
+				[&](auto result)
+				{
+					Assert::AreEqual(1, result);
+					wasThenCalled = true;
+				});
+
+			Assert::IsTrue(wasThenCalled);
+		}
+
+		TEST_METHOD(Reject_Catch)
+		{
+			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			Promise<int> pa = CoReturnPromise(p0);
+			pa.Then([&](auto result) { nThenCalls++; });
+			pa.Catch([&](auto ex) { nCatchCalls++; });
+
+			Assert::IsFalse(pa.isRejected());
+
+			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
+
+			Assert::IsTrue(pa.isRejected());
+			Assert::IsFalse(pa.isResolved());
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(1, nCatchCalls);
+		}
+
+		TEST_METHOD(ResolvedLater_co_await)
+		{
+			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();
+
+			auto result = CoAwait(p0);
+
+			Assert::IsFalse(result.isResolved());
+			p0state->resolve(1);
+			Assert::IsTrue(result.isResolved());
+			Assert::IsTrue(result.value() == true);
+		}
+
+		TEST_METHOD(ResolvedLater_Then)
+		{
+			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();
+
+			bool wasThenCalled = false;
+			CoReturnPromise(p0).Then([&](auto result)
+				{
+					Assert::AreEqual(1, result);
+					wasThenCalled = true;
+				});
+
+			Assert::IsFalse(wasThenCalled);
+			p0state->resolve(1);
+			Assert::IsTrue(wasThenCalled);
+		}
+	};
+	//***************************************************************************************
+	TEST_CLASS(TestRejection)
+	{
+	public:
+		TEST_METHOD(Catch)
+		{
+			auto [p0, p0state] = Promise<bool>::getUnresolvedPromiseAndState();
+
+			// "Wire-up" the SUT.
+			int nCatchCalls = 0;
+			p0.Catch([&](auto ex) { nCatchCalls++; });
+
+			// Reject p0.  The "Catch" Lambda should be called.
+			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
+
+			// Verify the result
+			Assert::IsTrue(p0.isRejected());
+			Assert::AreEqual(1, nCatchCalls);
+		}
+
+		TEST_METHOD(Catch_Catch)
+		{
+			auto [p0, p0state] = Promise<bool>::getUnresolvedPromiseAndState();
+
+			// "Wire-up" the SUT.
+			int nCatchCalls = 0;
+			p0
+				.Catch([&](auto ex) { nCatchCalls++; })
+				.Catch([&](auto ex) { nCatchCalls++; });
+
+			// Reject p0.  The "Catch" Lambda should be called.
+			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
+
+			// Verify the result
+			Assert::IsTrue(p0.isRejected());
+			Assert::AreEqual(2, nCatchCalls);
+		}
+
+		TEST_METHOD(Catch_Then)
+		{
+			auto [p0, p0state] = Promise<bool>::getUnresolvedPromiseAndState();
+
+			// "Wire-up" the SUT.
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			p0
+				.Catch([&](auto ex) { nCatchCalls++; })
+				.Then([&](auto result) { nThenCalls++; });
+
+			// Reject p0.  The "Catch" Lambda should be called.
+			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
+			// Reject p0 again to verify that Catch isn't called multiple times.
+			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
+
+			// Verify the result
+			Assert::IsTrue(p0.isRejected());
+			Assert::IsFalse(p0.isResolved());
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(1, nCatchCalls);
+		}
+
+		TEST_METHOD(Then_Catch)
+		{
+			auto [p0, p0state] = Promise<bool>::getUnresolvedPromiseAndState();
+
+			// "Wire-up" the SUT.
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			p0
+				.Then([&](auto result) { nThenCalls++; })
+				.Catch([&](auto ex) { nCatchCalls++; });
+
+			// Reject p0.  The "Catch" Lambda should be called.
+			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
+			// Reject p0 again to verify that Catch isn't called multiple times.
+			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
+
+			// Verify the result
+			Assert::IsTrue(p0.isRejected());
+			Assert::IsFalse(p0.isResolved());
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(1, nCatchCalls);
+		}
+
+		TEST_METHOD(ThenCatch)
+		{
+			auto [p0, p0state] = Promise<bool>::getUnresolvedPromiseAndState();
+
+			// "Wire-up" the SUT.
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			p0
+				.Then(
+					[&](auto result) { nThenCalls++; },
+					[&](auto ex) { nCatchCalls++; });
+
+			// Reject p0.  The "Catch" Lambda should be called.
+			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
+			// Reject p0 again to verify that Catch isn't called multiple times.
+			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
+
+			// Verify the result
+			Assert::IsTrue(p0.isRejected());
+			Assert::IsFalse(p0.isResolved());
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(1, nCatchCalls);
+		}
+
+		TEST_METHOD(ThenCatch_Catch)
+		{
+			auto [p0, p0state] = Promise<bool>::getUnresolvedPromiseAndState();
+
+			// "Wire-up" the SUT.
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			p0
+				.Then(
+					[&](auto result) { nThenCalls++; },
+					[&](auto ex) { nCatchCalls++; })
+				.Catch(
+					[&](auto ex) { nCatchCalls++; });
+
+			// Reject p0.  The "Catch" Lambda should be called.
+			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
+			// Reject p0 again to verify that Catch isn't called multiple times.
+			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
+
+			// Verify the result
+			Assert::IsTrue(p0.isRejected());
+			Assert::IsFalse(p0.isResolved());
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(2, nCatchCalls);
+		}
+
+		TEST_METHOD(ThenCatch_Then)
+		{
+			auto [p0, p0state] = Promise<bool>::getUnresolvedPromiseAndState();
+
+			// "Wire-up" the SUT.
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			p0
+				.Then(
+					[&](auto result) { nThenCalls++; },
+					[&](auto ex) { nCatchCalls++; })
+				.Then(
+					[&](auto result) { nThenCalls++; });
+
+			// Reject p0.  The "Catch" Lambda should be called.
+			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
+			// Reject p0 again to verify that Catch isn't called multiple times.
+			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
+
+			// Verify the result
+			Assert::IsTrue(p0.isRejected());
+			Assert::IsFalse(p0.isResolved());
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(1, nCatchCalls);
+		}
+	};
 	//***************************************************************************************
 	TEST_CLASS(TestFunctionCallsCoroutineThatDoesNotSuspend)
 	{
@@ -382,25 +695,6 @@ namespace TestJSLikeValuedPromise
 				});
 
 			Assert::IsTrue(p0state->isResolved());
-		}
-
-		TEST_METHOD(TestCatchChaining)
-		{
-			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();
-
-			Assert::IsFalse(p0state->isRejected());
-
-			p0state->reject(make_exception_ptr(std::out_of_range("invalid string position")));
-
-			int counter = 0;
-			p0.Catch([&](auto result) {
-					Assert::AreEqual(1, ++counter);
-				})
-				.Catch([&](auto result) {
-					Assert::AreEqual(2, ++counter);
-				});
-
-			Assert::IsTrue(p0state->isRejected());
 		}
 	};
 }
