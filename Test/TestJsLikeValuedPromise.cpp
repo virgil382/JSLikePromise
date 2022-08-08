@@ -228,6 +228,33 @@ namespace TestJSLikeValuedPromise
 		}
 	};
 	//***************************************************************************************
+	TEST_CLASS(Test_constructors)
+	{
+	public:
+		TEST_METHOD(Assign)
+		{
+			Promise<int> pa1(1);
+			Promise<int> pa2 = pa1;
+
+			Assert::IsTrue(pa1.state() == pa2.state());
+		}
+
+		TEST_METHOD(Copy)
+		{
+			Promise<int> pa1(1);
+			Promise<int> pa2(pa1);
+
+			Assert::IsTrue(pa1.state() == pa2.state());
+		}
+
+		TEST_METHOD(WithValue)
+		{
+			Promise<int> p(1);
+			Assert::IsTrue(p.isResolved());
+			Assert::IsTrue(p.value() == 1);
+		}
+	};
+	//***************************************************************************************
 	TEST_CLASS(TestRejection)
 	{
 	public:
@@ -741,34 +768,6 @@ namespace TestJSLikeValuedPromise
 			Assert::IsFalse(wasThenCalled);
 
 			m_promiseState->resolve(2);
-
-			Assert::IsTrue(wasThenCalled);
-		}
-	};
-	//***************************************************************************************
-	TEST_CLASS(TestCoroutineCallsCoroutineThatResolvesImmediately2)
-	{
-	private:
-		Promise<int> myCoroutine0() {
-			int val = co_await myCoroutine1();
-			co_return val;
-		}
-
-		Promise<int> myCoroutine1() {
-			co_return 3;
-		}
-
-	public:
-		TEST_METHOD(GetResultWithThen)
-		{
-			bool wasThenCalled = false;
-
-			myCoroutine0()
-				.Then([&](int val)
-					{
-						Assert::AreEqual(3, val);
-						wasThenCalled = true;
-					});
 
 			Assert::IsTrue(wasThenCalled);
 		}
