@@ -74,8 +74,13 @@ namespace JSLike {
   public:
     Promise(std::function<void(shared_ptr<PromiseState<T>>)> initializer)
     {
-      //  Call the Labda.  Pass it the state so it can resolve it (immediately or later).
-      initializer(state());
+      auto s = state();
+      try {
+        initializer(s);
+      }
+      catch (...) {
+        s->reject(current_exception());
+      }
     }
 
     Promise(T const &val)
@@ -271,11 +276,17 @@ namespace JSLike {
 
     Promise(std::function<void(shared_ptr<PromiseState<>>)> initializer)
     {
-      initializer(state());
+      auto s = state();
+      try {
+        initializer(s);
+      }
+      catch (...) {
+        s->reject(current_exception());
+      }
     }
 
     Promise Then(std::function<void()> thenLambda) {
-      Promise chainedPromise;
+      Promise chainedPromise(false);
       auto chainedPromiseState = chainedPromise.state();
 
       std::shared_ptr<PromiseState<>> thisPromiseState = state();
@@ -291,6 +302,44 @@ namespace JSLike {
 
       return chainedPromise;
     }
+
+    Promise Catch(function<void(exception_ptr)> catchLambda) {
+      Promise chainedPromise(false);
+      auto chainedPromiseState = chainedPromise.state();
+      auto thisPromiseState = state();
+      thisPromiseState->Then(
+        [chainedPromiseState](shared_ptr<BasePromiseState> resultState)
+        {
+          chainedPromiseState->resolve();
+        },
+        [chainedPromiseState, catchLambda](auto ex)
+        {
+          catchLambda(ex);
+          chainedPromiseState->reject(ex);
+        });
+
+      return chainedPromise;
+    }
+
+    Promise Then(std::function<void()> thenLambda, function<void(exception_ptr)> catchLambda) {
+      Promise chainedPromise(false);
+      auto chainedPromiseState = chainedPromise.state();
+
+      std::shared_ptr<PromiseState<>> thisPromiseState = state();
+      thisPromiseState->Then([chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
+        {
+          thenLambda();
+          chainedPromiseState->resolve();
+        },
+        [chainedPromiseState, catchLambda](auto ex)
+        {
+          catchLambda(ex);
+          chainedPromiseState->reject(ex);
+        });
+
+      return chainedPromise;
+    }
+
 
     /**
      * A promise_type is created each time a coroutine that returns BasePromise is called.

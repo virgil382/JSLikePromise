@@ -14,6 +14,7 @@ using namespace JSLike;
 
 namespace TestJSLikeValuedPromise
 {
+	//***************************************************************************************
 	TEST_CLASS(Test_co_await)
 	{
 	private:
@@ -63,7 +64,6 @@ namespace TestJSLikeValuedPromise
 
 		TEST_METHOD(Reject_uncaught)
 		{
-			// Create 3 Promises to give to PromiseAny.  Save their PromiseStates.
 			auto [p1, p1state] = Promise<int>::getUnresolvedPromiseAndState();
 
 			auto result = myCoAwaitingCoroutine(p1);
@@ -112,6 +112,7 @@ namespace TestJSLikeValuedPromise
 			Assert::IsTrue(result.isResolved());
 			Assert::IsTrue(result.value() == true);
 		}
+
 		TEST_METHOD(Then)
 		{
 			bool wasThenCalled = false;
@@ -272,6 +273,34 @@ namespace TestJSLikeValuedPromise
 			Promise<int> pa2(pa1);
 
 			Assert::IsTrue(pa1.state() == pa2.state());
+		}
+
+		TEST_METHOD(InitializerThatResolves)
+		{
+			Promise<int> p0(
+				[](auto state) {
+					state->resolve(1);
+				});
+			Assert::IsTrue(p0.isResolved());
+			Assert::IsTrue(p0.value() == 1);
+		}
+
+		TEST_METHOD(InitializerThatRejects)
+		{
+			Promise<int> p0(
+				[](auto state) {
+					state->reject(make_exception_ptr(out_of_range("invalid string position")));
+				});
+			Assert::IsTrue(p0.isRejected());
+		}
+
+		TEST_METHOD(InitializerThatThrows)
+		{
+			Promise<int> p0(
+				[](auto state) {
+					int i = std::string().at(1); // this generates an std::out_of_range
+				});
+			Assert::IsTrue(p0.isRejected());
 		}
 
 		TEST_METHOD(WithValue)

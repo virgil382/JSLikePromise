@@ -124,6 +124,8 @@ namespace JSLike {
       s->init(s, promises);
     }
 
+    PromiseAny(function<void(shared_ptr<BasePromiseState>)>) = delete;
+
     shared_ptr<PromiseAnyState> state() {
       if (!m_state) m_state = make_shared<PromiseAnyState>();
 

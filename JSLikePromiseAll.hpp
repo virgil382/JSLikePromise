@@ -113,6 +113,8 @@ namespace JSLike {
       s->init(s, promises);
     }
 
+    PromiseAll(function<void(shared_ptr<BasePromiseState>)>) = delete;
+
     PromiseAll Then(std::function<void(PromiseAll::ResultType)> thenLambda) {
       PromiseAll chainedPromise(false);
       std::shared_ptr<PromiseAllState> chainedPromiseState = chainedPromise.state();
