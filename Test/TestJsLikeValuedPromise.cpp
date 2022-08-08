@@ -665,48 +665,6 @@ namespace TestJSLikeValuedPromise
 		}
 	};
 	//***************************************************************************************
-	TEST_CLASS(TestFunctionCallsCoroutineThatDoesNotSuspend)
-	{
-	private:
-		Promise<int> routine0() {
-			return 1;
-		}
-
-		Promise<int> myCoroutine0() {
-			co_return 1;
-		}
-
-	public:
-		TEST_METHOD(PreResolvedPromise1)
-		{
-			auto result = routine0();
-			Assert::AreEqual(true, result.isResolved());
-			Assert::AreEqual(1, result.value());
-		}
-
-		TEST_METHOD(PreResolvedPromise2)
-		{
-			// From a regular function, call a coroutine that returns immediately.
-			auto result = myCoroutine0();
-			Assert::AreEqual(true, result.isResolved());
-			Assert::AreEqual(1, result.value());
-		}
-
-		TEST_METHOD(GetResultWithThen)
-		{
-			bool wasThenCalled = false;
-
-			// From a regular function, call a coroutine that returns immediately.
-			myCoroutine0().Then([&](int val)
-				{
-					Assert::AreEqual(1, val);
-					wasThenCalled = true;
-				});
-
-			Assert::IsTrue(wasThenCalled);
-		}
-	};
-	//***************************************************************************************
 	TEST_CLASS(TestFunctionCallsCoroutineThatSuspendsAndContinuesLater)
 	{
 	private:
