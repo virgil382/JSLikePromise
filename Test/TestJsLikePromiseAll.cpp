@@ -187,9 +187,22 @@ namespace TestJSLikePromiseAll
 
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
+			bool wasExceptionThrown = false;
 			PromiseAll pa = CoReturnPromiseAll(p);
 			pa.Then([&](auto result) { nThenCalls++; });
-			pa.Catch([&](auto ex) { nCatchCalls++; });
+			pa.Catch([&](auto ex) {
+				if (!ex) Assert::Fail();
+
+				try {
+					std::rethrow_exception(ex);
+				}
+				catch (std::exception& e) {
+					if (e.what() == string("invalid string position"))
+						wasExceptionThrown = true;
+				}
+
+				nCatchCalls++;
+			});
 
 			Assert::IsFalse(pa.isRejected());
 
@@ -205,6 +218,7 @@ namespace TestJSLikePromiseAll
 			Assert::IsFalse(pa.isResolved());
 			Assert::AreEqual(0, nThenCalls);
 			Assert::AreEqual(1, nCatchCalls);
+			Assert::IsTrue(wasExceptionThrown);
 		}
 
 		TEST_METHOD(ResolvedLater_co_await)

@@ -165,9 +165,22 @@ namespace TestJSLikeValuedPromise
 
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
+			bool wasExceptionThrown = false;
 			Promise<int> pa = CoReturnPromise(p0);
 			pa.Then([&](auto result) { nThenCalls++; });
-			pa.Catch([&](auto ex) { nCatchCalls++; });
+			pa.Catch([&](auto ex) {
+				if (!ex) Assert::Fail();
+
+				try {
+					std::rethrow_exception(ex);
+				}
+				catch (std::exception& e) {
+					if (e.what() == string("invalid string position"))
+						wasExceptionThrown = true;
+				}
+
+				nCatchCalls++;
+				});
 
 			Assert::IsFalse(pa.isRejected());
 
@@ -177,6 +190,20 @@ namespace TestJSLikeValuedPromise
 			Assert::IsFalse(pa.isResolved());
 			Assert::AreEqual(0, nThenCalls);
 			Assert::AreEqual(1, nCatchCalls);
+			Assert::IsTrue(wasExceptionThrown);
+		}
+
+		TEST_METHOD(ResolvedLater)
+		{
+			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();
+
+			bool wasThenCalled = false;
+			auto p = CoReturnPromise(p0);
+
+			Assert::IsFalse(p.isResolved());
+			p0state->resolve(1);
+			Assert::IsTrue(p.isResolved());
+			Assert::AreEqual(1, p.value());
 		}
 
 		TEST_METHOD(ResolvedLater_co_await)
@@ -663,154 +690,6 @@ namespace TestJSLikeValuedPromise
 			Assert::AreEqual(2, nThenCalls);
 			Assert::AreEqual(0, nCatchCalls);
 		}
-	};
-	//***************************************************************************************
-	TEST_CLASS(TestFunctionCallsCoroutineThatSuspendsAndContinuesLater)
-	{
-	private:
-		Promise<int> myCoroutine0() {
-			int val = co_await resolveAfter1Sec();
-			co_return val;
-		}
-
-		std::shared_ptr<PromiseState<int>> m_promiseState;
-		Promise<int> resolveAfter1Sec() {
-			return Promise<int>([this](std::shared_ptr<PromiseState<int>> promiseState)
-				{
-					m_promiseState = promiseState;
-				});
-		}
-
-	public:
-		TEST_METHOD(GetResultAfterSleeping)
-		{
-			auto result = myCoroutine0();  // Should get resolved to 2 after 1sec
-
-			Assert::AreEqual(false, result.isResolved());
-
-			m_promiseState->resolve(2);
-
-			Assert::AreEqual(true, result.isResolved());
-			Assert::AreEqual(2, result.value());
-		}
-	};
-
-	TEST_CLASS(TestFunctionCallsCoroutineThatSuspendsAndContinuesAfter1sec2)
-	{
-	private:
-		Promise<int> myCoroutine0() {
-			int val = co_await resolveLater();
-			co_return val;
-		}
-
-		std::shared_ptr<PromiseState<int>> m_promiseState;
-		Promise<int> resolveLater() {
-			return Promise<int>([this](std::shared_ptr<PromiseState<int>> promiseState)
-				{
-					m_promiseState = promiseState;
-				});
-		}
-
-	public:
-		TEST_METHOD(GetResultWithThen)
-		{
-			bool wasThenCalled = false;
-
-			myCoroutine0()     // Should get resolved to 2 after 1sec
-				.Then([&](int val)
-					{
-						Assert::AreEqual(2, val);
-						wasThenCalled = true;
-					});
-
-			Assert::IsFalse(wasThenCalled);
-
-			m_promiseState->resolve(2);
-
-			Assert::IsTrue(wasThenCalled);
-		}
-	};
-	//***************************************************************************************
-	TEST_CLASS(TestFunctionCallsCoroutineThatSuspendsAndContinuesAfter1secAndThrows)
-	{
-	private:
-		Promise<int> myCoroutine0() {
-			int val = co_await resolveAfter1Sec();
-			char c = std::string().at(1); // this generates an std::out_of_range
-			co_return val;
-		}
-
-		std::shared_ptr<PromiseState<int>> m_promiseState;
-		Promise<int> resolveAfter1Sec() {
-			return Promise<int>([this](auto promiseState)
-				{
-					m_promiseState = promiseState;
-				});
-		}
-
-	public:
-
-		TEST_METHOD(GetResultWithThen)
-		{
-			bool wasExceptionThrown = false;
-			myCoroutine0().Catch([&](std::exception_ptr eptr)
-				{
-					if (!eptr) Assert::Fail();
-
-					try {
-						std::rethrow_exception(eptr);
-					}
-					catch (std::exception& e) {
-						if (e.what() == string("invalid string position"))
-							wasExceptionThrown = true;
-					}
-				});
-
-			Assert::IsFalse(wasExceptionThrown);
-
-			m_promiseState->resolve(2);  // Resolve to 2
-
-			Assert::IsTrue(wasExceptionThrown);
-		}
-	};
-	//***************************************************************************************
-	TEST_CLASS(TestFunctionCallsCoroutineThatSuspendsAndThrowsAfter1sec)
-	{
-	private:
-		Promise<int> myCoroutine0() {
-			int val = co_await rejectAfter1Sec(); // This is supposed to throw... How?
-			co_return val;
-		}
-
-		std::shared_ptr<PromiseState<int>> m_promiseState;
-		Promise<int> rejectAfter1Sec() {
-			return Promise<int>([this](auto promiseState)
-				{
-					m_promiseState = promiseState;
-				});
-		}
-
-	public:
-
-		TEST_METHOD(GetResultWithThen)
-		{
-			bool wasExceptionThrown = false;
-			myCoroutine0().Catch([&](std::exception_ptr eptr)
-				{
-					if (!eptr) Assert::Fail();
-
-					try {
-						std::rethrow_exception(eptr);
-					}
-					catch (std::exception& e) {
-						if (e.what() == string("invalid string position"))
-							wasExceptionThrown = true;
-					}
-				});
-
-			m_promiseState->reject(make_exception_ptr(std::out_of_range("invalid string position")));
-
-			Assert::IsTrue(wasExceptionThrown);
-		}
+		//***************************************************************************************
 	};
 }
