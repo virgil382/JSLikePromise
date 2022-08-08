@@ -19,7 +19,6 @@ namespace TestJSLikeVoidPromise
 	{
 	private:
 		Promise<bool> myCoAwaitingCoroutine(Promise<>& p) {
-
 			co_await p;
 			co_return true;
 		}
@@ -461,102 +460,237 @@ namespace TestJSLikeVoidPromise
 		}
 	};
 	//***************************************************************************************
-	TEST_CLASS(TestPromiseWithVoidTemplateArgument)
+	TEST_CLASS(TestResolution)
 	{
-		TEST_METHOD(TestExplicitVoidArgument)
-		{
-			bool wasInitialized = false;
-
-			// From a regular function, call a coroutine that returns immediately.
-			Promise<void> p0([&](auto state)
-				{
-					wasInitialized = true;
-				});
-
-			Assert::IsTrue(wasInitialized);
-		}
-
-		TEST_METHOD(TestDefaultVoidArgument)
-		{
-			bool wasInitialized = false;
-
-			// From a regular function, call a coroutine that returns immediately.
-			Promise<> p0([&](auto state)
-				{
-					wasInitialized = true;
-				});
-
-			Assert::IsTrue(wasInitialized);
-		}
-	};
-	//***************************************************************************************
-	TEST_CLASS(TestFunctionCallsCoroutineThatSuspendsAndContinuesAfter1sec2)
-	{
-	private:
-		Promise<> myCoroutine0() {
-			co_await resolveAfter1Sec();
-		}
-
-		std::shared_ptr<PromiseState<>> m_promiseState;
-		Promise<> resolveAfter1Sec() {
-			return Promise<>([this](auto promiseState)
-				{
-					m_promiseState = promiseState;
-				});
-		}
-
 	public:
-		TEST_METHOD(GetResultWithThen)
+		TEST_METHOD(Preresolved_Catch_Then)
 		{
-			bool wasThenCalled = false;
+			Promise<> p1;                                              // preresolved
 
-			myCoroutine0()     // Should get resolved to 2 after 1sec
-				.Then([&]()
-					{
-						wasThenCalled = true;
-					});
-
-			m_promiseState->resolve();  // Resolve
-
-			Assert::IsTrue(wasThenCalled);
-		}
-	};
-	//***************************************************************************************
-	TEST_CLASS(TestFunctionCallsCoroutineThatSuspendsAndThrowsAfter1sec)
-	{
-	private:
-		Promise<> myCoroutine0() {
-			co_await rejectAfter1Sec(); // This is supposed to throw... How?
-		}
-
-		std::shared_ptr<PromiseState<>> m_promiseState;
-		Promise<> rejectAfter1Sec() {
-			return Promise<>([this](auto promiseState)
-				{
-					m_promiseState = promiseState;
-				});
-		}
-
-	public:
-		TEST_METHOD(GetResultWithThen)
-		{
-			bool wasExceptionThrown = false;
-			myCoroutine0().Catch([&](std::exception_ptr eptr)
-				{
-					if (!eptr) Assert::Fail();
-
-					try {
-						std::rethrow_exception(eptr);
-					}
-					catch (std::exception& e) {
-						if (e.what() == string("invalid string position"))
-							wasExceptionThrown = true;
-					}
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			p1.Catch(
+				[&](auto ex) { nCatchCalls++; }).Then(
+				[&]() {
+					nThenCalls++;
 				});
 
-			m_promiseState->reject(make_exception_ptr(std::out_of_range("invalid string position")));
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
 
-			Assert::IsTrue(wasExceptionThrown);
+		TEST_METHOD(Preresolved_Then)
+		{
+			Promise<> p1;                                              // preresolved
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			p1.Then(
+				[&]() {
+					nThenCalls++;
+				});
+
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(Preresolved_Then_Catch)
+		{
+			Promise<> p1;                                              // preresolved
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			p1.Then(
+				[&]() {
+					nThenCalls++;
+				}).Catch(
+				[&](auto ex) { nCatchCalls++; });
+
+				Assert::AreEqual(1, nThenCalls);
+				Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(Preresolved_Then_Then)
+		{
+			Promise<> p1;                                              // preresolved
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			p1.Then(
+				[&]() {
+					nThenCalls++;
+				}).Then(
+				[&]() {
+					nThenCalls++;
+				});
+
+				Assert::AreEqual(2, nThenCalls);
+				Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(Preresolved_ThenCatch)
+		{
+			Promise<> p1;                                              // preresolved
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			p1.Then(
+				[&]() {
+					nThenCalls++;
+				},
+				[&](auto ex) { nCatchCalls++; });
+
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(Preresolved_ThenCatch_Then)
+		{
+			Promise<> p1;                                              // preresolved
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			p1.Then(
+				[&]() {
+					nThenCalls++;
+				},
+				[&](auto ex) { nCatchCalls++; }).Then(
+				[&]() {
+					nThenCalls++;
+				});
+
+			Assert::AreEqual(2, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(Unresolved_Catch_Then)
+		{
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // resolved later
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			p0.Catch(
+				[&](auto ex) { nCatchCalls++; }).Then(
+				[&]() {
+					nThenCalls++;
+				});
+
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+			p0state->resolve();  // Resolve
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(Unresolved_Then)
+		{
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // resolved later
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			p0.Then(
+				[&]() {
+					nThenCalls++;
+				});
+
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+			p0state->resolve();  // Resolve
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(Unresolved_Then_Catch)
+		{
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // resolved later
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			p0.Then(
+				[&]() {
+					nThenCalls++;
+				}).Catch(
+				[&](auto ex) {
+					nCatchCalls++;
+				});
+
+				Assert::AreEqual(0, nThenCalls);
+				Assert::AreEqual(0, nCatchCalls);
+				p0state->resolve();  // Resolve
+				Assert::AreEqual(1, nThenCalls);
+				Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(Unresolved_Then_Then)
+		{
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // resolved later
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			p0.Then(
+				[&]() {
+					nThenCalls++;
+				}).Then(
+				[&]() {
+					nThenCalls++;
+				});
+
+				Assert::AreEqual(0, nThenCalls);
+				Assert::AreEqual(0, nCatchCalls);
+				p0state->resolve();  // Resolve
+				Assert::AreEqual(2, nThenCalls);
+				Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(Unresolved_ThenCatch)
+		{
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // resolved later
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			p0.Then(
+				[&]() {
+					nThenCalls++;
+				},
+				[&](auto ex) {
+					nCatchCalls++;
+				});
+
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+			p0state->resolve();  // Resolve
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(Unresolved_ThenCatch_Then)
+		{
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // resolved later
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			p0.Then(
+				[&]() {
+					nThenCalls++;
+				},
+				[&](auto ex) {
+					nCatchCalls++;
+				}).Then(
+				[&]() {
+					nThenCalls++;
+				});
+
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+			p0state->resolve();  // Resolve
+			Assert::AreEqual(2, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
 		}
 	};
 	//***************************************************************************************
