@@ -105,7 +105,7 @@ namespace JSLike {
         string err("bad cast from BasePromiseState to PromiseState<");
         err += typeid(T).name();
         err += ">";
-        throw std::bad_cast::__construct_from_string_literal(err.c_str());
+        throw bad_cast::__construct_from_string_literal(err.c_str());
       }
       return castState->value();
     }
@@ -124,7 +124,7 @@ namespace JSLike {
         string err("bad cast from BasePromiseState to PromiseState<");
         err += typeid(T).name();
         err += ">";
-        throw std::bad_cast::__construct_from_string_literal(err.c_str());
+        throw bad_cast::__construct_from_string_literal(err.c_str());
       }
       castState->resolve(value);
     }
@@ -145,7 +145,7 @@ namespace JSLike {
      * @param eptr An exception_ptr that points to the exception with which to reject
      *        the BasePromise.
      */
-    void reject(std::exception_ptr eptr) {
+    void reject(exception_ptr eptr) {
       if (m_eptr || m_isResolved) return;  // prevent multiple rejection/resolution
       m_eptr = eptr;
 
@@ -174,7 +174,7 @@ namespace JSLike {
      */
     void rethrowIfRejected() {
       if (m_eptr)
-        std::rethrow_exception(m_eptr);
+        rethrow_exception(m_eptr);
     }
 
   protected:
@@ -185,7 +185,7 @@ namespace JSLike {
     friend struct PromiseAnyState;
     friend struct PromiseAny;
 
-    virtual void Then(std::function<void(shared_ptr<BasePromiseState>)> thenLambda) {
+    virtual void Then(function<void(shared_ptr<BasePromiseState>)> thenLambda) {
       m_thenLambda = thenLambda;
 
       if (m_isResolved) {
@@ -193,7 +193,7 @@ namespace JSLike {
       }
     }
 
-    void Catch(std::function<void(std::exception_ptr)> catchLambda) {
+    void Catch(function<void(exception_ptr)> catchLambda) {
       m_catchLambda = catchLambda;
 
       if (m_eptr) {
@@ -202,18 +202,18 @@ namespace JSLike {
     }
 
     // Why beat around the bush.  Do both at the same time.
-    void Then(function<void(shared_ptr<BasePromiseState>)> thenLambda, function<void(std::exception_ptr)> catchLambda) {
+    void Then(function<void(shared_ptr<BasePromiseState>)> thenLambda, function<void(exception_ptr)> catchLambda) {
       Then(thenLambda);
       Catch(catchLambda);
     }
 
-    std::function<void(shared_ptr<BasePromiseState>)>    m_thenLambda;
+    function<void(shared_ptr<BasePromiseState>)>    m_thenLambda;
 
     mutable coroutine_handle<>                           m_h;
     bool                                                 m_isResolved;
 
-    std::function<void(std::exception_ptr)>              m_catchLambda;
-    std::exception_ptr                                   m_eptr;
+    function<void(exception_ptr)>              m_catchLambda;
+    exception_ptr                                   m_eptr;
   };
 
 
@@ -232,16 +232,16 @@ namespace JSLike {
     BasePromise() = default;
   public:
 
-    BasePromise(std::function<void(shared_ptr<BasePromiseState>)> initializer)
+    BasePromise(function<void(shared_ptr<BasePromiseState>)> initializer)
     {
       initializer(state());
     }
 
     // The state of the BasePromise is constructed by this BasePromise and it is shared with a promise_type or
     // an awaiter_type, and with a "then" Lambda to resolve/reject the BasePromise.
-    std::shared_ptr<BasePromiseState> m_state;
-    std::shared_ptr<BasePromiseState> state() {
-      if(!m_state) m_state = std::make_shared<BasePromiseState>();
+    shared_ptr<BasePromiseState> m_state;
+    shared_ptr<BasePromiseState> state() {
+      if(!m_state) m_state = make_shared<BasePromiseState>();
       return m_state;
     }
 
@@ -253,7 +253,7 @@ namespace JSLike {
       return state()->isRejected();
     }
 
-    BasePromise Then(std::function<void(shared_ptr<BasePromiseState>)> thenLambda) {
+    BasePromise Then(function<void(shared_ptr<BasePromiseState>)> thenLambda) {
       BasePromise chainedPromise;
       auto chainedPromiseState = chainedPromise.state();
       state()->Then([chainedPromiseState, thenLambda](auto resolvedState)
@@ -274,7 +274,7 @@ namespace JSLike {
      * @param catchLambda A function to be called after the BasePromise is rejected.
      * @return This BasePromise (for call chaining).
      */
-    BasePromise Catch(std::function<void(std::exception_ptr)> catchLambda) {
+    BasePromise Catch(function<void(exception_ptr)> catchLambda) {
       BasePromise chainedPromise;
       auto chainedPromiseState = chainedPromise.state();
       state()->Catch([chainedPromiseState, catchLambda](auto ex)
@@ -286,7 +286,7 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    BasePromise Then(function<void(shared_ptr<BasePromiseState>)> thenLambda, function<void(std::exception_ptr)> catchLambda) {
+    BasePromise Then(function<void(shared_ptr<BasePromiseState>)> thenLambda, function<void(exception_ptr)> catchLambda) {
       BasePromise chainedPromise;
       auto chainedPromiseState = chainedPromise.state();
       state()->Then([chainedPromiseState, thenLambda](auto resolvedState)
@@ -308,11 +308,11 @@ namespace JSLike {
      * from BasePromise.
      */
     struct promise_type_base {
-      std::suspend_never initial_suspend() {
+      suspend_never initial_suspend() {
         return {};
       }
 
-      std::suspend_never final_suspend() noexcept {
+      suspend_never final_suspend() noexcept {
         return {};
       }
 
@@ -322,11 +322,11 @@ namespace JSLike {
        * BasePromise returned by the coroutine.
        */
       void unhandled_exception() {
-        std::exception_ptr eptr = std::current_exception();
+        exception_ptr eptr = current_exception();
         m_state->reject(eptr);
       }
 
-      std::shared_ptr<BasePromiseState> m_state;
+      shared_ptr<BasePromiseState> m_state;
     };
 
 
@@ -340,7 +340,7 @@ namespace JSLike {
       awaiter_type_base(awaiter_type_base&& other) = default;
       awaiter_type_base& operator=(const awaiter_type_base&) = delete;
 
-      awaiter_type_base(std::shared_ptr<BasePromiseState> state) : m_state(state) {}
+      awaiter_type_base(shared_ptr<BasePromiseState> state) : m_state(state) {}
 
       /**
        * Answer the quest of whether or not the coroutin calling co_await should suspend.
@@ -367,7 +367,7 @@ namespace JSLike {
         m_state->m_h = h;
       }
 
-      std::shared_ptr<BasePromiseState> m_state;
+      shared_ptr<BasePromiseState> m_state;
     };
   };
 

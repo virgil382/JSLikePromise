@@ -58,7 +58,7 @@ namespace JSLike {
   struct PromiseState<void> : public BasePromiseState {
     PromiseState() : BasePromiseState() {}
 
-    // Don't allow copies of any kind.  Always use std::shared_ptr to instances of this type.
+    // Don't allow copies of any kind.  Always use shared_ptr to instances of this type.
     PromiseState(const PromiseState&) = delete;
     PromiseState(PromiseState&& other) = delete;
     PromiseState& operator=(const PromiseState&) = delete;
@@ -72,7 +72,7 @@ namespace JSLike {
     Promise() = default;
 
   public:
-    Promise(std::function<void(shared_ptr<PromiseState<T>>)> initializer)
+    Promise(function<void(shared_ptr<PromiseState<T>>)> initializer)
     {
       auto s = state();
       try {
@@ -90,10 +90,10 @@ namespace JSLike {
 
     // The state of the Promise is constructed by this Promise and it is shared with a promise_type or
     // an awaiter_type, and with a "then" Lambda to resolve/reject the Promise.
-    std::shared_ptr<PromiseState<T>> state() {
-      if (!m_state) m_state = std::make_shared<PromiseState<T>>();
+    shared_ptr<PromiseState<T>> state() {
+      if (!m_state) m_state = make_shared<PromiseState<T>>();
 
-      auto castState = std::dynamic_pointer_cast<JSLike::PromiseState<T>>(m_state);
+      auto castState = dynamic_pointer_cast<JSLike::PromiseState<T>>(m_state);
       return castState;
     }
 
@@ -216,7 +216,7 @@ namespace JSLike {
       awaiter_type(awaiter_type&& other) = default;
       awaiter_type& operator=(const awaiter_type&) = delete;
 
-      awaiter_type(std::shared_ptr<BasePromiseState> state) : awaiter_type_base(state) {}
+      awaiter_type(shared_ptr<BasePromiseState> state) : awaiter_type_base(state) {}
 
       /**
        * Called right before the call to co_await completes in order to return the result
@@ -227,7 +227,7 @@ namespace JSLike {
       constexpr T await_resume() const {
         m_state->rethrowIfRejected();
 
-        auto castState = std::dynamic_pointer_cast<JSLike::PromiseState<T>>(m_state);
+        auto castState = dynamic_pointer_cast<JSLike::PromiseState<T>>(m_state);
         return castState->m_result;
       }
     };
@@ -246,14 +246,14 @@ namespace JSLike {
      *
      * @return A std::pair containing the Promise&lt;T&gt; and its PromiseState&lt;T&gt;.
      */
-    std::pair<Promise<T>, std::shared_ptr<PromiseState<T>>> static getUnresolvedPromiseAndState() {
-      std::shared_ptr<PromiseState<T>> state;
+    pair<Promise<T>, shared_ptr<PromiseState<T>>> static getUnresolvedPromiseAndState() {
+      shared_ptr<PromiseState<T>> state;
       Promise<T> p([&](auto promiseState)
         {
           state = promiseState;
         });
 
-      return { std::move(p), state };
+      return { move(p), state };
     }
   };
 
@@ -274,7 +274,7 @@ namespace JSLike {
       state()->resolve();
     }
 
-    Promise(std::function<void(shared_ptr<PromiseState<>>)> initializer)
+    Promise(function<void(shared_ptr<PromiseState<>>)> initializer)
     {
       auto s = state();
       try {
@@ -285,11 +285,11 @@ namespace JSLike {
       }
     }
 
-    Promise Then(std::function<void()> thenLambda) {
+    Promise Then(function<void()> thenLambda) {
       Promise chainedPromise(false);
       auto chainedPromiseState = chainedPromise.state();
 
-      std::shared_ptr<PromiseState<>> thisPromiseState = state();
+      shared_ptr<PromiseState<>> thisPromiseState = state();
       thisPromiseState->Then([chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
         {
           thenLambda();
@@ -321,11 +321,11 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    Promise Then(std::function<void()> thenLambda, function<void(exception_ptr)> catchLambda) {
+    Promise Then(function<void()> thenLambda, function<void(exception_ptr)> catchLambda) {
       Promise chainedPromise(false);
       auto chainedPromiseState = chainedPromise.state();
 
-      std::shared_ptr<PromiseState<>> thisPromiseState = state();
+      shared_ptr<PromiseState<>> thisPromiseState = state();
       thisPromiseState->Then([chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
         {
           thenLambda();
@@ -367,7 +367,7 @@ namespace JSLike {
       awaiter_type(awaiter_type&& other) = default;
       awaiter_type& operator=(const awaiter_type&) = delete;
 
-      awaiter_type(std::shared_ptr<PromiseState<>> state) : awaiter_type_base(state) {}
+      awaiter_type(shared_ptr<PromiseState<>> state) : awaiter_type_base(state) {}
 
       /**
        * Called right before the call to co_await completes in order to give the awaiter_type
@@ -382,10 +382,10 @@ namespace JSLike {
 
     // The state of the Promise is constructed by this Promise and it is shared with a promise_type or
     // an awaiter_type, and with a "then" Lambda to resolve/reject the Promise.
-    std::shared_ptr<PromiseState<>> state() {
-      if (!m_state) m_state = std::make_shared<PromiseState<>>();
+    shared_ptr<PromiseState<>> state() {
+      if (!m_state) m_state = make_shared<PromiseState<>>();
 
-      auto castState = std::dynamic_pointer_cast<JSLike::PromiseState<>>(m_state);
+      auto castState = dynamic_pointer_cast<JSLike::PromiseState<>>(m_state);
       return castState;
     }
 
@@ -401,14 +401,14 @@ namespace JSLike {
      *
      * @return A std::pair containing the Promise&lt;&gt; and its PromiseState&lt;&gt;.
      */
-    std::pair<Promise, std::shared_ptr<PromiseState<>>> static getUnresolvedPromiseAndState() {
-      std::shared_ptr<PromiseState<void>> state;
+    pair<Promise, shared_ptr<PromiseState<>>> static getUnresolvedPromiseAndState() {
+      shared_ptr<PromiseState<void>> state;
       Promise p([&](auto promiseState)
         {
           state = promiseState;
         });
 
-      return { std::move(p), state };
+      return { move(p), state };
     }
   };
 

@@ -15,7 +15,7 @@
 using namespace std;
 
 namespace JSLike {
-  struct PromiseAnyState : public PromiseState<std::shared_ptr<BasePromiseState>> {
+  struct PromiseAnyState : public PromiseState<shared_ptr<BasePromiseState>> {
     PromiseAnyState() = default;
 
   private:
@@ -26,7 +26,7 @@ namespace JSLike {
     PromiseAnyState(PromiseAnyState&& other) = delete;
     PromiseAnyState& operator=(const PromiseAnyState&) = delete;
 
-    void init(std::shared_ptr<PromiseAnyState> &thisState, std::vector<JSLike::BasePromise> const &monitoredPromises)
+    void init(shared_ptr<PromiseAnyState> &thisState, vector<JSLike::BasePromise> const &monitoredPromises)
     {
       size_t vectorSize = monitoredPromises.size();
 
@@ -57,7 +57,7 @@ namespace JSLike {
     }
 
     // Override BasePromiseState::Then()
-    void Then(std::function<void(shared_ptr<BasePromiseState>)> thenLambda) override {
+    void Then(function<void(shared_ptr<BasePromiseState>)> thenLambda) override {
       m_thenLambda = thenLambda;
 
       if (m_isResolved) {
@@ -110,7 +110,7 @@ namespace JSLike {
     PromiseAny() {
       auto s = state();
 
-      auto ex = make_exception_ptr(std::logic_error("PromiseAny constructed with empty array"));
+      auto ex = make_exception_ptr(logic_error("PromiseAny constructed with empty array"));
       s->reject(ex);
     };
 
@@ -118,7 +118,7 @@ namespace JSLike {
      * Construct a PromiseAny with the vector of BasePromises that it will monitor for resolution/rejection.
      * @param promises The vector of BasePromises.
      */
-    PromiseAny(std::vector<JSLike::BasePromise> promises)
+    PromiseAny(vector<JSLike::BasePromise> promises)
     {
       auto s = state();
       s->init(s, promises);
@@ -133,7 +133,7 @@ namespace JSLike {
       return castState;
     }
 
-    PromiseAny Then(std::function<void(shared_ptr<BasePromiseState>)> thenLambda) {
+    PromiseAny Then(function<void(shared_ptr<BasePromiseState>)> thenLambda) {
       PromiseAny chainedPromise(false);  // The new "chained" Promise that we'll return to the caller.
       auto chainedPromiseState = chainedPromise.state();
 
@@ -159,7 +159,7 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    PromiseAny Catch(std::function<void(std::exception_ptr)> catchLambda) {
+    PromiseAny Catch(function<void(exception_ptr)> catchLambda) {
       PromiseAny chainedPromise(false);
       auto chainedPromiseState = chainedPromise.state();
 
@@ -185,7 +185,7 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    PromiseAny Then(std::function<void(shared_ptr<BasePromiseState>)> thenLambda, std::function<void(std::exception_ptr)> catchLambda) {
+    PromiseAny Then(function<void(shared_ptr<BasePromiseState>)> thenLambda, function<void(exception_ptr)> catchLambda) {
       PromiseAny chainedPromise(false);  // The new "chained" Promise that we'll return to the caller.
       auto chainedPromiseState = chainedPromise.state();
 
@@ -246,7 +246,7 @@ namespace JSLike {
        *        evaluating the expression following co_return).
        */
       void return_value(PromiseAny coreturnedPromiseAny) {
-        auto savedPromiseAnyState = std::dynamic_pointer_cast<PromiseAnyState>(m_state);
+        auto savedPromiseAnyState = dynamic_pointer_cast<PromiseAnyState>(m_state);
         auto coreturnedPromiseAnyState = coreturnedPromiseAny.state();
 
         // Use a "Then" Lambda to get notified if coreturnedPromiseAll gets resolved.
@@ -273,7 +273,7 @@ namespace JSLike {
       awaiter_type(awaiter_type&& other) = default;
       awaiter_type& operator=(const awaiter_type&) = delete;
 
-      awaiter_type(std::shared_ptr<BasePromiseState> state) : awaiter_type_base(state) {}
+      awaiter_type(shared_ptr<BasePromiseState> state) : awaiter_type_base(state) {}
 
       /**
        * Called right before the call to co_await completes in order to return the result
@@ -284,7 +284,7 @@ namespace JSLike {
       shared_ptr<BasePromiseState> await_resume() const {
         m_state->rethrowIfRejected();
 
-        shared_ptr<PromiseAnyState> castState = std::dynamic_pointer_cast<PromiseAnyState>(m_state);
+        shared_ptr<PromiseAnyState> castState = dynamic_pointer_cast<PromiseAnyState>(m_state);
         return castState->m_result;
       }
     };

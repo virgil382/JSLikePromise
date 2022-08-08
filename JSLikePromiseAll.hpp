@@ -13,7 +13,7 @@
 using namespace std;
 
 namespace JSLike {
-  struct PromiseAllState : public PromiseState<std::vector<std::shared_ptr<BasePromiseState>>> {
+  struct PromiseAllState : public PromiseState<vector<shared_ptr<BasePromiseState>>> {
     PromiseAllState() : m_nUnresolved(-1) {}
 
   private:
@@ -52,7 +52,7 @@ namespace JSLike {
     }
 
     size_t                                                                  m_nUnresolved;
-    std::vector<std::shared_ptr<BasePromiseState>>                          m_promiseStates;
+    vector<shared_ptr<BasePromiseState>>                          m_promiseStates;
   };  // PromiseAllState
 
 
@@ -90,9 +90,9 @@ namespace JSLike {
    * Coroutines can return a PromiseAll, which is "wired up" to settle at the same time and with
    * the same result as the PromiseAll resulting from co_return.
    */
-  struct PromiseAll : public Promise<std::vector<std::shared_ptr<BasePromiseState>>> {
+  struct PromiseAll : public Promise<vector<shared_ptr<BasePromiseState>>> {
   public:
-    typedef std::vector<std::shared_ptr<BasePromiseState>> ResultType;
+    typedef vector<shared_ptr<BasePromiseState>> ResultType;
 
     PromiseAll() {
       auto s = state();
@@ -115,9 +115,9 @@ namespace JSLike {
 
     PromiseAll(function<void(shared_ptr<BasePromiseState>)>) = delete;
 
-    PromiseAll Then(std::function<void(PromiseAll::ResultType)> thenLambda) {
+    PromiseAll Then(function<void(PromiseAll::ResultType)> thenLambda) {
       PromiseAll chainedPromise(false);
-      std::shared_ptr<PromiseAllState> chainedPromiseState = chainedPromise.state();
+      shared_ptr<PromiseAllState> chainedPromiseState = chainedPromise.state();
 
       auto currentState = state();
       currentState->Then(
@@ -137,7 +137,7 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    PromiseAll Catch(std::function<void(std::exception_ptr)> catchLambda) {
+    PromiseAll Catch(function<void(exception_ptr)> catchLambda) {
       PromiseAll chainedPromise(false);
       auto chainedPromiseState = chainedPromise.state();
 
@@ -159,9 +159,9 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    PromiseAll Then(std::function<void(PromiseAll::ResultType)> thenLambda, std::function<void(std::exception_ptr)> catchLambda) {
+    PromiseAll Then(function<void(PromiseAll::ResultType)> thenLambda, function<void(exception_ptr)> catchLambda) {
       PromiseAll chainedPromise(false);
-      std::shared_ptr<PromiseAllState> chainedPromiseState = chainedPromise.state();
+      shared_ptr<PromiseAllState> chainedPromiseState = chainedPromise.state();
 
       auto currentState = state();
       currentState->Then(
@@ -227,7 +227,7 @@ namespace JSLike {
        *        evaluating the expression following co_return).
        */
       void return_value(PromiseAll coreturnedPromiseAll) {
-        auto savedPromiseAllState = std::dynamic_pointer_cast<JSLike::PromiseAllState>(m_state);
+        auto savedPromiseAllState = dynamic_pointer_cast<JSLike::PromiseAllState>(m_state);
         auto coreturnedPromiseAllState = coreturnedPromiseAll.state();
 
         coreturnedPromiseAllState->Then(
@@ -247,10 +247,10 @@ namespace JSLike {
 
   public:
 
-    std::shared_ptr<PromiseAllState> state() {
-      if (!m_state) m_state = std::make_shared<PromiseAllState>();
+    shared_ptr<PromiseAllState> state() {
+      if (!m_state) m_state = make_shared<PromiseAllState>();
 
-      auto castState = std::dynamic_pointer_cast<JSLike::PromiseAllState>(m_state);
+      auto castState = dynamic_pointer_cast<JSLike::PromiseAllState>(m_state);
       return castState;
     }
 
