@@ -250,7 +250,21 @@ namespace TestJSLikeVoidPromise
 
 			// "Wire-up" the SUT.
 			int nCatchCalls = 0;
-			p0.Catch([&](auto ex) { nCatchCalls++; });
+			bool wasExpectedExceptionThrown = false;
+			p0.Catch(
+				[&](auto ex) {
+					if (!ex) Assert::Fail();
+
+					try {
+						std::rethrow_exception(ex);
+					}
+					catch (std::exception& e) {
+						if (e.what() == string("invalid string position"))
+							wasExpectedExceptionThrown = true;
+					}
+
+					nCatchCalls++;
+				});
 
 			// Reject p0.  The "Catch" Lambda should be called.
 			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
@@ -258,6 +272,7 @@ namespace TestJSLikeVoidPromise
 			// Verify the result
 			Assert::IsTrue(p0.isRejected());
 			Assert::AreEqual(1, nCatchCalls);
+			Assert::IsTrue(wasExpectedExceptionThrown);
 		}
 
 		TEST_METHOD(Catch_Catch)
@@ -266,9 +281,37 @@ namespace TestJSLikeVoidPromise
 
 			// "Wire-up" the SUT.
 			int nCatchCalls = 0;
+			bool wasExpectedException1Thrown = false;
+			bool wasExpectedException2Thrown = false;
 			p0
-				.Catch([&](auto ex) { nCatchCalls++; })
-				.Catch([&](auto ex) { nCatchCalls++; });
+				.Catch(
+					[&](auto ex) {
+						if (!ex) Assert::Fail();
+
+						try {
+							std::rethrow_exception(ex);
+						}
+						catch (std::exception& e) {
+							if (e.what() == string("invalid string position"))
+								wasExpectedException1Thrown = true;
+						}
+
+						nCatchCalls++;
+					})
+				.Catch(
+					[&](auto ex) {
+						if (!ex) Assert::Fail();
+
+						try {
+							std::rethrow_exception(ex);
+						}
+						catch (std::exception& e) {
+							if (e.what() == string("invalid string position"))
+								wasExpectedException2Thrown = true;
+						}
+
+						nCatchCalls++;
+					});
 
 			// Reject p0.  The "Catch" Lambda should be called.
 			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
@@ -276,6 +319,8 @@ namespace TestJSLikeVoidPromise
 			// Verify the result
 			Assert::IsTrue(p0.isRejected());
 			Assert::AreEqual(2, nCatchCalls);
+			Assert::IsTrue(wasExpectedException1Thrown);
+			Assert::IsTrue(wasExpectedException2Thrown);
 		}
 
 		TEST_METHOD(Catch_Then)
@@ -285,8 +330,22 @@ namespace TestJSLikeVoidPromise
 			// "Wire-up" the SUT.
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
+			bool wasExpectedExceptionThrown = false;
 			p0
-				.Catch([&](auto ex) { nCatchCalls++; })
+				.Catch(
+					[&](auto ex) {
+						if (!ex) Assert::Fail();
+
+						try {
+							std::rethrow_exception(ex);
+						}
+						catch (std::exception& e) {
+							if (e.what() == string("invalid string position"))
+								wasExpectedExceptionThrown = true;
+						}
+
+						nCatchCalls++;
+					})
 				.Then([&]() { nThenCalls++; });
 
 			// Reject p0.  The "Catch" Lambda should be called.
@@ -299,6 +358,7 @@ namespace TestJSLikeVoidPromise
 			Assert::IsFalse(p0.isResolved());
 			Assert::AreEqual(0, nThenCalls);
 			Assert::AreEqual(1, nCatchCalls);
+			Assert::IsTrue(wasExpectedExceptionThrown);
 		}
 
 		TEST_METHOD(Then_Catch)
@@ -430,34 +490,6 @@ namespace TestJSLikeVoidPromise
 		}
 	};
 	//***************************************************************************************
-	TEST_CLASS(TestFunctionCallsCoroutineThatSuspendsAndContinuesAfter1sec1)
-	{
-	private:
-		Promise<> myCoroutine0() {
-			co_await resolveAfter1Sec();
-		}
-
-		std::shared_ptr<PromiseState<>> m_promiseState;
-		Promise<> resolveAfter1Sec() {
-			return Promise<>([this](auto promiseState)
-				{
-					m_promiseState = promiseState;
-				});
-		}
-
-	public:
-		TEST_METHOD(GetResultAfterSleeping)
-		{
-			auto result = myCoroutine0();  // Should get resolved to 2 after 1sec
-
-			Assert::AreEqual(false, result.isResolved());
-
-			m_promiseState->resolve();  // Resolve
-
-			Assert::AreEqual(true, result.isResolved());
-		}
-	};
-
 	TEST_CLASS(TestFunctionCallsCoroutineThatSuspendsAndContinuesAfter1sec2)
 	{
 	private:
@@ -487,76 +519,6 @@ namespace TestJSLikeVoidPromise
 			m_promiseState->resolve();  // Resolve
 
 			Assert::IsTrue(wasThenCalled);
-		}
-	};
-	//***************************************************************************************
-	TEST_CLASS(TestFunctionCallsCoroutineThatDoesNotSuspendAndThrows)
-	{
-	private:
-		Promise<> myCoroutine0() {
-			int i = std::string().at(1); // this generates an std::out_of_range
-			co_return;
-		}
-
-	public:
-		TEST_METHOD(GetExceptionWithCatch)
-		{
-			bool wasExceptionThrown = false;
-
-			// From a regular function, call a coroutine that returns immediately.
-			myCoroutine0().Catch([&](std::exception_ptr eptr)
-				{
-					if(!eptr) Assert::Fail();
-
-					try {
-						std::rethrow_exception(eptr);
-					}
-					catch (std::exception &e) {
-						if (e.what() == string("invalid string position"))
-							wasExceptionThrown = true;
-					}
-				});
-
-			Assert::IsTrue(wasExceptionThrown);
-		}
-	};
-	//***************************************************************************************
-	TEST_CLASS(TestFunctionCallsCoroutineThatSuspendsAndContinuesAfter1secAndThrows)
-	{
-	private:
-		Promise<> myCoroutine0() {
-			co_await resolveAfter1Sec();
-			int i = std::string().at(1); // this generates an std::out_of_range
-		}
-
-		std::shared_ptr<PromiseState<>> m_promiseState;
-		Promise<> resolveAfter1Sec() {
-			return Promise<>([this](auto promiseState)
-				{
-					m_promiseState = promiseState;
-				});
-		}
-
-	public:
-		TEST_METHOD(GetResultWithThen)
-		{
-			bool wasExceptionThrown = false;
-			myCoroutine0().Catch([&](std::exception_ptr eptr)
-				{
-					if (!eptr) Assert::Fail();
-
-					try {
-						std::rethrow_exception(eptr);
-					}
-					catch (std::exception& e) {
-						if (e.what() == string("invalid string position"))
-							wasExceptionThrown = true;
-					}
-				});
-
-			m_promiseState->resolve();  // this will resume the coroutine, which will throw
-
-			Assert::IsTrue(wasExceptionThrown);
 		}
 	};
 	//***************************************************************************************
