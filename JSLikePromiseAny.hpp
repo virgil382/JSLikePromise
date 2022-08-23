@@ -61,14 +61,14 @@ namespace JSLike {
       m_thenLambda = thenLambda;
 
       if (m_isResolved) {
-        thenLambda(m_result); // Difference vs. BasePromiseState
+        thenLambda(value()); // Difference vs. BasePromiseState
       }
     }
 
     // Override PromiseState::resolve()
     void resolve(shared_ptr<BasePromiseState> const &result) override {
       if (m_eptr || m_isResolved) return;
-      m_result = result;
+      m_result = make_shared<shared_ptr<BasePromiseState>>(result);
       BasePromiseState::resolve(result);  // Difference vs. PromiseState
     }
   };  // PromiseAnyState
@@ -254,7 +254,7 @@ namespace JSLike {
           [savedPromiseAnyState, coreturnedPromiseAnyState](shared_ptr<BasePromiseState> resultState)
           {
             // coreturnedPromiseAny got resolved, so resolve savedPromiseAnyState
-            savedPromiseAnyState->resolve(coreturnedPromiseAnyState->m_result);
+            savedPromiseAnyState->resolve(coreturnedPromiseAnyState->value());
           },
           // Use a "Catch" Lambda to get notified if savedPromiseAnyState gets rejected.
           [savedPromiseAnyState](auto ex)
@@ -285,7 +285,7 @@ namespace JSLike {
         m_state->rethrowIfRejected();
 
         shared_ptr<PromiseAnyState> castState = dynamic_pointer_cast<PromiseAnyState>(m_state);
-        return castState->m_result;
+        return castState->value();
       }
     };
 

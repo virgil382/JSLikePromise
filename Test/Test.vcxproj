@@ -169,6 +169,7 @@
     <ClCompile Include="TimerExtent.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="TranscriptionCounter.hpp" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="TimerExtent.h" />
   </ItemGroup>

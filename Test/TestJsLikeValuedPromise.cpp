@@ -6,6 +6,7 @@
 #include <deque>
 
 #include "../JSLikePromise.hpp"
+#include "TranscriptionCounter.hpp"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -23,6 +24,13 @@ namespace TestJSLikeValuedPromise
 			auto result = co_await p;
 
 			Assert::AreEqual(1, result);
+
+			co_return true;
+		}
+
+		Promise<bool> myCoAwaitingCoroutineThatMoves(Promise<TranscriptionCounter>& p) {
+			TranscriptionCounter r;
+			r = move(co_await p);   // should invoke the move assignment operator
 
 			co_return true;
 		}
@@ -89,6 +97,29 @@ namespace TestJSLikeValuedPromise
 			Assert::IsTrue(result.isResolved());
 			Assert::IsTrue(result.value() == true);
 		}
+
+		TEST_METHOD(ResolvedLater_move)
+		{
+			auto [p0, p0state] = Promise<TranscriptionCounter>::getUnresolvedPromiseAndState();
+
+			auto result = myCoAwaitingCoroutineThatMoves(p0);
+
+			Assert::IsFalse(result.isResolved());
+
+			// Construct a TranscriptionCounter, and use it to resolve the Promise.
+			int nMoveCtor = 0, nMoveAssign = 0, nCopyCtor = 0, nCopyAssign = 0;
+			TranscriptionCounter* obj = TranscriptionCounter::constructAndSetCounters("obj1", &nMoveCtor, &nMoveAssign, &nCopyCtor, &nCopyAssign);
+			p0state->resolve(move(*obj));  // Resolve
+
+			Assert::AreEqual(0, nCopyCtor);
+			Assert::AreEqual(0, nCopyAssign);
+			Assert::AreEqual(1, nMoveCtor);    // performed by resolve()
+			Assert::AreEqual(1, nMoveAssign);  // performed inside the coroutine
+
+
+			Assert::IsTrue(result.isResolved());
+			Assert::IsTrue(result.value() == true);
+		}
 	};
 	//***************************************************************************************
 	TEST_CLASS(Test_co_return_Value)
@@ -117,7 +148,7 @@ namespace TestJSLikeValuedPromise
 		{
 			bool wasThenCalled = false;
 			CoReturnPromise(1).Then(
-				[&](auto result)
+				[&](int &result)
 				{
 					Assert::AreEqual(1, result);
 					wasThenCalled = true;
@@ -151,7 +182,7 @@ namespace TestJSLikeValuedPromise
 
 			bool wasThenCalled = false;
 			CoReturnPromise(p1).Then(
-				[&](auto result)
+				[&](int &result)
 				{
 					Assert::AreEqual(1, result);
 					wasThenCalled = true;
@@ -168,7 +199,7 @@ namespace TestJSLikeValuedPromise
 			int nCatchCalls = 0;
 			bool wasExceptionThrown = false;
 			Promise<int> pa = CoReturnPromise(p0);
-			pa.Then([&](auto result) { nThenCalls++; });
+			pa.Then([&](int &result) { nThenCalls++; });
 			pa.Catch([&](auto ex) {
 				if (!ex) Assert::Fail();
 
@@ -224,7 +255,7 @@ namespace TestJSLikeValuedPromise
 			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();
 
 			bool wasThenCalled = false;
-			CoReturnPromise(p0).Then([&](auto result)
+			CoReturnPromise(p0).Then([&](int &result)
 				{
 					Assert::AreEqual(1, result);
 					wasThenCalled = true;
@@ -357,7 +388,7 @@ namespace TestJSLikeValuedPromise
 			int nCatchCalls = 0;
 			p0
 				.Catch([&](auto ex) { nCatchCalls++; })
-				.Then([&](auto result) { nThenCalls++; });
+				.Then([&](bool &result) { nThenCalls++; });
 
 			// Reject p0.  The "Catch" Lambda should be called.
 			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
@@ -379,7 +410,7 @@ namespace TestJSLikeValuedPromise
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
 			p0
-				.Then([&](auto result) { nThenCalls++; })
+				.Then([&](bool &result) { nThenCalls++; })
 				.Catch([&](auto ex) { nCatchCalls++; });
 
 			// Reject p0.  The "Catch" Lambda should be called.
@@ -403,7 +434,7 @@ namespace TestJSLikeValuedPromise
 			int nCatchCalls = 0;
 			p0
 				.Then(
-					[&](auto result) { nThenCalls++; },
+					[&](bool &result) { nThenCalls++; },
 					[&](auto ex) { nCatchCalls++; });
 
 			// Reject p0.  The "Catch" Lambda should be called.
@@ -427,7 +458,7 @@ namespace TestJSLikeValuedPromise
 			int nCatchCalls = 0;
 			p0
 				.Then(
-					[&](auto result) { nThenCalls++; },
+					[&](bool &result) { nThenCalls++; },
 					[&](auto ex) { nCatchCalls++; })
 				.Catch(
 					[&](auto ex) { nCatchCalls++; });
@@ -453,10 +484,10 @@ namespace TestJSLikeValuedPromise
 			int nCatchCalls = 0;
 			p0
 				.Then(
-					[&](auto result) { nThenCalls++; },
+					[&](bool &result) { nThenCalls++; },
 					[&](auto ex) { nCatchCalls++; })
 				.Then(
-					[&](auto result) { nThenCalls++; });
+					[&](bool&result) { nThenCalls++; });
 
 			// Reject p0.  The "Catch" Lambda should be called.
 			p0state->reject(make_exception_ptr(out_of_range("invalid string position")));
@@ -474,6 +505,71 @@ namespace TestJSLikeValuedPromise
 	TEST_CLASS(TestResolution)
 	{
 	public:
+		TEST_METHOD(PostresolvedMovable_Then)
+		{
+			auto [p0, p0state] = Promise<TranscriptionCounter>::getUnresolvedPromiseAndState();  // resolved later
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			p0.Then(
+				[&](TranscriptionCounter && result) {
+					TranscriptionCounter r; // This should invoke the default constructor
+					r = move(result);       // This should invoke the move assignment operator
+					nThenCalls++;
+				});
+
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+
+			// Construct a TranscriptionCounter, and use it to resolve the Promise.
+			int nMoveCtor = 0, nMoveAssign = 0, nCopyCtor = 0, nCopyAssign = 0;
+			TranscriptionCounter *obj = TranscriptionCounter::constructAndSetCounters("obj1", &nMoveCtor, &nMoveAssign, &nCopyCtor, &nCopyAssign);
+			p0state->resolve(move(*obj));  // This should invoke the move assignment operator
+
+			Assert::AreEqual(1, nMoveCtor);    // performed by resolve()
+			Assert::AreEqual(1, nMoveAssign);  // performed inside the Then Lambda above
+			Assert::AreEqual(0, nCopyCtor);
+			Assert::AreEqual(0, nCopyAssign);
+
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(PostresolvedMovable_ThenCatch)
+		{
+			auto [p0, p0state] = Promise<TranscriptionCounter>::getUnresolvedPromiseAndState();  // resolved later
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			p0.Then(
+				[&](TranscriptionCounter&& result) {
+					TranscriptionCounter r; // This should invoke the default constructor
+					r = move(result);       // This should invoke the move assignment operator
+					nThenCalls++;
+				},
+				[&](auto ex) {
+					nCatchCalls++;
+				});
+
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+
+			// Construct a TranscriptionCounter, and use it to resolve the Promise.
+			int nMoveCtor = 0, nMoveAssign = 0, nCopyCtor = 0, nCopyAssign = 0;
+			TranscriptionCounter* obj = TranscriptionCounter::constructAndSetCounters("obj1", &nMoveCtor, &nMoveAssign, &nCopyCtor, &nCopyAssign);
+			p0state->resolve(move(*obj));      // This should invoke the move assignment operator
+
+			Assert::AreEqual(1, nMoveCtor);    // performed by resolve()
+			Assert::AreEqual(1, nMoveAssign);  // performed inside the Then Lambda above
+			Assert::AreEqual(0, nCopyCtor);
+			Assert::AreEqual(0, nCopyAssign);
+
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
 		TEST_METHOD(Preresolved_Catch_Then)
 		{
 			Promise<int> p1(1);                                              // preresolved
@@ -482,7 +578,7 @@ namespace TestJSLikeValuedPromise
 			int nCatchCalls = 0;
 			p1.Catch(
 				[&](auto ex) { nCatchCalls++; }).Then(
-				[&](auto result) {
+				[&](int &result) {
 					Assert::AreEqual(1, result);
 					nThenCalls++;
 				});
@@ -498,7 +594,7 @@ namespace TestJSLikeValuedPromise
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
 			p1.Then(
-				[&](auto result) {
+				[&](int &result) {
 					Assert::AreEqual(1, result);
 					nThenCalls++;
 				});
@@ -514,7 +610,7 @@ namespace TestJSLikeValuedPromise
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
 			p1.Then(
-				[&](auto result) {
+				[&](int &result) {
 					Assert::AreEqual(1, result);
 					nThenCalls++;
 				}).Catch(
@@ -531,11 +627,11 @@ namespace TestJSLikeValuedPromise
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
 			p1.Then(
-				[&](auto result) {
+				[&](int &result) {
 					Assert::AreEqual(1, result);
 					nThenCalls++;
 				}).Then(
-				[&](auto result) {
+				[&](int &result) {
 					Assert::AreEqual(1, result);
 					nThenCalls++;
 				});
@@ -551,7 +647,7 @@ namespace TestJSLikeValuedPromise
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
 			p1.Then(
-				[&](auto result) {
+				[&](int &result) {
 					Assert::AreEqual(1, result);
 					nThenCalls++;
 				},
@@ -568,12 +664,12 @@ namespace TestJSLikeValuedPromise
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
 			p1.Then(
-				[&](auto result) {
+				[&](int &result) {
 					Assert::AreEqual(1, result);
 					nThenCalls++;
 				},
 				[&](auto ex) { nCatchCalls++; }).Then(
-				[&](auto result) {
+				[&](int &result) {
 					Assert::AreEqual(1, result);
 					nThenCalls++;
 				});
@@ -591,7 +687,7 @@ namespace TestJSLikeValuedPromise
 
 			p0.Catch(
 				[&](auto ex) { nCatchCalls++; }).Then(
-				[&](auto result) {
+				[&](int &result) {
 					Assert::AreEqual(1, result);
 					nThenCalls++;
 				});
@@ -611,7 +707,7 @@ namespace TestJSLikeValuedPromise
 			int nCatchCalls = 0;
 
 			p0.Then(
-					[&](auto result) {
+					[&](int &result) {
 						Assert::AreEqual(1, result);
 						nThenCalls++;
 					});
@@ -631,7 +727,7 @@ namespace TestJSLikeValuedPromise
 			int nCatchCalls = 0;
 
 			p0.Then(
-				[&](auto result) {
+				[&](int &result) {
 					Assert::AreEqual(1, result);
 					nThenCalls++;
 				}).Catch(
@@ -654,11 +750,11 @@ namespace TestJSLikeValuedPromise
 			int nCatchCalls = 0;
 
 			p0.Then(
-				[&](auto result) {
+				[&](int &result) {
 					Assert::AreEqual(1, result);
 					nThenCalls++;
 				}).Then(
-				[&](auto result) {
+				[&](int &result) {
 					Assert::AreEqual(1, result);
 					nThenCalls++;
 				});
@@ -678,7 +774,7 @@ namespace TestJSLikeValuedPromise
 			int nCatchCalls = 0;
 
 			p0.Then(
-				[&](auto result) {
+				[&](int &result) {
 					Assert::AreEqual(1, result);
 					nThenCalls++;
 				},
@@ -701,14 +797,14 @@ namespace TestJSLikeValuedPromise
 			int nCatchCalls = 0;
 
 			p0.Then(
-				[&](auto result) {
+				[&](int &result) {
 					Assert::AreEqual(1, result);
 					nThenCalls++;
 				},
 				[&](auto ex) {
 					nCatchCalls++;
 				}).Then(
-				[&](auto result) {
+				[&](int &result) {
 					Assert::AreEqual(1, result);
 					nThenCalls++;
 				});

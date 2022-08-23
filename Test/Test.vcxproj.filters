@@ -12,6 +12,9 @@
     <Filter Include="HelperFiles">
       <UniqueIdentifier>{70e501f2-0aaa-4ede-a777-875a1dff6c01}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\helpers">
+      <UniqueIdentifier>{22a8a3da-7818-42e6-9298-226cd95cc406}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TestJsLikeValuedPromise.cpp">
@@ -39,6 +42,9 @@
     </ClInclude>
     <ClInclude Include="TimerExtent.h">
       <Filter>HelperFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="TranscriptionCounter.hpp">
+      <Filter>Source Files\helpers</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

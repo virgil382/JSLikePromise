@@ -16,7 +16,7 @@ Promise<int> ex01_function() {
 }
 
 void example01() {
-  ex01_function().Then([](int result)
+  ex01_function().Then([](int &result)
     {
       std::cout << "ex01: result=" << result << "\n";
     });
@@ -33,7 +33,7 @@ Promise<int> ex02_function() {
 }
 
 void example02() {
-  ex02_function().Then([](int result)
+  ex02_function().Then([](int &result)
     {
       std::cout << "ex02: result=" << result << "\n";
     });
@@ -50,7 +50,7 @@ Promise<int> ex02a_function() {
 }
 
 void example02a() {
-  ex02a_function().Then([](int result)
+  ex02a_function().Then([](int &result)
     {
       std::cout << "ex02a: result=" << result << "\n";
     });
@@ -64,7 +64,7 @@ Promise<int> ex03_coroutine() {
 }
 
 void example03() {
-  ex03_coroutine().Then([](int result)
+  ex03_coroutine().Then([](int &result)
     {
       std::cout << "ex03: result=" << result << "\n";
     });
@@ -88,7 +88,7 @@ Promise<int> ex04_coroutine() {
 }
 
 void example04() {
-  ex04_coroutine().Then([](int result)
+  ex04_coroutine().Then([](int &result)
     {
       std::cout << "ex04: result after 1sec=" << result << "\n";
     });
@@ -120,7 +120,7 @@ Promise<int> ex5_coroutine2() {
 }
 
 void example05() {
-  ex5_coroutine2().Then([](int result)
+  ex5_coroutine2().Then([](int &result)
     {
       std::cout << "ex05: result after 1sec=" << result << "\n";
     });
