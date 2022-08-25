@@ -307,7 +307,8 @@ namespace TestJSLikePromiseAll
 
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
-			PromiseAll pa = PromiseAll({ Promise<>(), p1, p2, p3 })
+			PromiseAll pa({ Promise<>(), p1, p2, p3 });
+			pa
 				.Catch([&](auto ex) { nCatchCalls++; })
 				.Then([&](auto states)
 					{
@@ -331,8 +332,8 @@ namespace TestJSLikePromiseAll
 
 			bool areAllResolved = false;
 
-			PromiseAll pa = PromiseAll({ p0, p1, p2, p3 })
-				.Then([&](auto states)
+			PromiseAll pa({ p0, p1, p2, p3 });
+			pa.Then([&](auto states)
 					{
 						Assert::AreEqual(1, states[1]->value<int>());
 						Assert::AreEqual(std::string("Hello"), states[2]->value<std::string>());
@@ -353,8 +354,8 @@ namespace TestJSLikePromiseAll
 
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
-			PromiseAll pa = PromiseAll({ p0, p1, p2, p3 })
-				.Then([&](auto states)
+			PromiseAll pa({ p0, p1, p2, p3 });
+			pa.Then([&](auto states)
 					{
 						Assert::AreEqual(1, states[1]->value<int>());
 						Assert::AreEqual(std::string("Hello"), states[2]->value<std::string>());
@@ -377,8 +378,8 @@ namespace TestJSLikePromiseAll
 
 			int nThenCalls = 0;
 
-			PromiseAll pa = PromiseAll({ p0, p1, p2, p3 })
-				.Then([&](auto states)
+			PromiseAll pa({ p0, p1, p2, p3 });
+			pa.Then([&](auto states)
 					{
 						Assert::AreEqual(1, states[1]->value<int>());
 						Assert::AreEqual(std::string("Hello"), states[2]->value<std::string>());
@@ -406,7 +407,8 @@ namespace TestJSLikePromiseAll
 
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
-			PromiseAll pa = PromiseAll({ p0, p1, p2, p3 }).Then(
+			PromiseAll pa({ p0, p1, p2, p3 }); 
+			pa.Then(
 				[&](auto states)
 				{
 					Assert::AreEqual(1, states[1]->value<int>());
@@ -430,7 +432,8 @@ namespace TestJSLikePromiseAll
 
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
-			PromiseAll pa = PromiseAll({ p0, p1, p2, p3 }).Then(
+			PromiseAll pa({ p0, p1, p2, p3 });
+			pa.Then(
 				[&](auto states)
 				{
 					Assert::AreEqual(1, states[1]->value<int>());
@@ -462,8 +465,8 @@ namespace TestJSLikePromiseAll
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
 
-			PromiseAll pa = PromiseAll({ p0, p1, p2, p3 })
-				.Catch([&](auto ex) { nCatchCalls++; })
+			PromiseAll pa({ p0, p1, p2, p3 });
+			pa.Catch([&](auto ex) { nCatchCalls++; })
 				.Then([&](auto states)
 					{
 						Assert::AreEqual(1, states[1]->value<int>());
@@ -489,8 +492,8 @@ namespace TestJSLikePromiseAll
 
 			bool areAllResolved = false;
 
-			PromiseAll pa = PromiseAll({ p0, p1, p2, p3 })
-				.Then([&](auto states)
+			PromiseAll pa({ p0, p1, p2, p3 });
+			pa.Then([&](auto states)
 				{
 					Assert::AreEqual(1, states[1]->value<int>());
 					Assert::AreEqual(std::string("Hello"), states[2]->value<std::string>());
@@ -514,8 +517,8 @@ namespace TestJSLikePromiseAll
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
 
-			PromiseAll pa = PromiseAll({ p0, p1, p2, p3 })
-				.Then([&](auto states)
+			PromiseAll pa({ p0, p1, p2, p3 });
+			pa.Then([&](auto states)
 					{
 						Assert::AreEqual(1, states[1]->value<int>());
 						Assert::AreEqual(std::string("Hello"), states[2]->value<std::string>());
@@ -541,8 +544,8 @@ namespace TestJSLikePromiseAll
 
 			int nThenCalls = 0;
 
-			PromiseAll pa = PromiseAll({ p0, p1, p2, p3 })
-				.Then([&](auto states)
+			PromiseAll pa({ p0, p1, p2, p3 });
+			pa.Then([&](auto states)
 					{
 						Assert::AreEqual(1, states[1]->value<int>());
 						Assert::AreEqual(std::string("Hello"), states[2]->value<std::string>());
@@ -573,7 +576,8 @@ namespace TestJSLikePromiseAll
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
 
-			PromiseAll pa = PromiseAll({ p0, p1, p2, p3 }).Then(
+			PromiseAll pa({ p0, p1, p2, p3 });
+			pa.Then(
 				[&](auto states)
 				{
 					Assert::AreEqual(1, states[1]->value<int>());
@@ -601,7 +605,8 @@ namespace TestJSLikePromiseAll
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
 
-			PromiseAll pa = PromiseAll({ p0, p1, p2, p3 }).Then(
+			PromiseAll pa({ p0, p1, p2, p3 });
+			pa.Then(
 				[&](auto states)
 				{
 					Assert::AreEqual(1, states[1]->value<int>());
@@ -638,8 +643,8 @@ namespace TestJSLikePromiseAll
 
 			// "Wire-up" the SUT.
 			int nCatchCalls = 0;
-			PromiseAll pa = PromiseAll({ p0, p1, p2 })
-				.Catch([&](auto ex) { nCatchCalls++; });
+			PromiseAll pa({ p0, p1, p2 });
+			pa.Catch([&](auto ex) { nCatchCalls++; });
 
 			// Reject p1.  The "Catch" Lambda should be called.
 			p1state->reject(make_exception_ptr(out_of_range("invalid string position")));
@@ -658,8 +663,8 @@ namespace TestJSLikePromiseAll
 
 			// "Wire-up" the SUT.
 			int nCatchCalls = 0;
-			PromiseAll pa = PromiseAll({ p0, p1, p2 })
-				.Catch([&](auto ex) { nCatchCalls++; })
+			PromiseAll pa({ p0, p1, p2 });
+			pa.Catch([&](auto ex) { nCatchCalls++; })
 				.Catch([&](auto ex) { nCatchCalls++; });
 
 			// Reject p1.  The "Catch" Lambda should be called.
@@ -680,8 +685,8 @@ namespace TestJSLikePromiseAll
 			// "Wire-up" the SUT.
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
-			PromiseAll pa = PromiseAll({ p0, p1, p2 })
-				.Catch([&](auto ex) { nCatchCalls++; })
+			PromiseAll pa({ p0, p1, p2 });
+			pa.Catch([&](auto ex) { nCatchCalls++; })
 				.Then([&](auto result) { nThenCalls++; });
 
 			// Reject p1.  The "Catch" Lambda should be called.
@@ -706,8 +711,8 @@ namespace TestJSLikePromiseAll
 			// "Wire-up" the SUT.
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
-			PromiseAll pa = PromiseAll({ p0, p1, p2 })
-				.Then([&](auto result) { nThenCalls++; })
+			PromiseAll pa({ p0, p1, p2 });
+			pa.Then([&](auto result) { nThenCalls++; })
 				.Catch([&](auto ex) { nCatchCalls++; });
 
 			// Reject p1.  The "Catch" Lambda should be called.
@@ -732,7 +737,8 @@ namespace TestJSLikePromiseAll
 			// "Wire-up" the SUT.
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
-			PromiseAll pa = PromiseAll({ p0, p1, p2 }).Then(
+			PromiseAll pa({ p0, p1, p2 });
+			pa.Then(
 				[&](auto result) { nThenCalls++; },
 				[&](auto ex) { nCatchCalls++; });
 
@@ -758,7 +764,8 @@ namespace TestJSLikePromiseAll
 			// "Wire-up" the SUT.
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
-			PromiseAll pa = PromiseAll({ p0, p1, p2 }).Then(
+			PromiseAll pa({ p0, p1, p2 });
+			pa.Then(
 				[&](auto result) { nThenCalls++; },
 				[&](auto ex) { nCatchCalls++; }).Catch(
 				[&](auto ex) { nCatchCalls++; });
@@ -785,7 +792,8 @@ namespace TestJSLikePromiseAll
 			// "Wire-up" the SUT.
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
-			PromiseAll pa = PromiseAll({ p0, p1, p2 }).Then(
+			PromiseAll pa({ p0, p1, p2 });
+			pa.Then(
 				[&](auto result) { nThenCalls++; },
 				[&](auto ex) { nCatchCalls++; }).Then(
 				[&](auto result) { nThenCalls++; });
@@ -816,7 +824,8 @@ namespace TestJSLikePromiseAll
 			bool areAllResolved = false;
 
 			// Top of the hierarchy (should be preresolved)
-			PromiseAll pa1 = PromiseAll({ p1, p2, p3 }).Then([&](auto states)
+			PromiseAll pa1({ p1, p2, p3 });
+			pa1.Then([&](auto states)
 				{
 					Assert::AreEqual(1, states[0]->value<int>());
 					Assert::AreEqual(std::string("Hello"), states[1]->value<std::string>());
@@ -824,7 +833,8 @@ namespace TestJSLikePromiseAll
 				});
 
 			// Bottom of the hierarchy (should resolve when p0 resolves)
-			PromiseAll pa2 = PromiseAll({ pa1, p0 }).Then([&](auto states)
+			PromiseAll pa2({ pa1, p0 });
+			pa2.Then([&](auto states)
 				{
 					areAllResolved = true;
 				});

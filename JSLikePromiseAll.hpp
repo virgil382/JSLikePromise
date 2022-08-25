@@ -65,7 +65,7 @@ namespace JSLike {
    * PromiseAll::ResultType (see typedef), which is vector of shared pointers to the
    * BasePromiseStates (of the BasePromises).  The Lambda can retrieve the value of each
    * (derived) BasePromiseState by calling BasePromiseState::value<T>().  Example:
-   * 
+   *
    * void myFunction(BasePromise &p0, BasePromise &p1, BasePromise &p2, BasePromise &p3)
    * {
    *   PromiseAll pa({ p0, p1, p2, p3 });  // These promises are constructed/resolved elsewhere.
@@ -77,17 +77,17 @@ namespace JSLike {
    *       // In this example we suppose that, p0 is BasePromiseState, so it doesn't have a value.
    *     });
    * }
-   * 
+   *
    * A PromiseAll is rejected if any of the BasePromises with which it is constructed/initialized
    * is rejected.  It's "Catch" Lambda is called with the same exception_ptr with which the
    * BasePromise was rejected.
-   * 
+   *
    * Coroutines can co_await on a PromiseAll via a PromiseAll::awaiter_type, which the compiler
    * automatically constructs.  After all the BasePromises are resolved, the
    * PromiseAll::awaiter_type resumes the coroutine and returns a PromiseAll::ResultType to the
    * coroutine.  However, if a BasePromise is rejected, then the PromiseAll::awaiter_type
    * resumes the coroutine and rethrows the exception_ptr with which the BasePromise was rejected.
-   * 
+   *
    * Coroutines can return a PromiseAll, which is "wired up" to settle at the same time and with
    * the same result as the PromiseAll resulting from co_return.
    */
@@ -103,6 +103,7 @@ namespace JSLike {
     PromiseAll(const PromiseAll&) = default;
     PromiseAll(PromiseAll&& other) = default;
     PromiseAll& operator=(const PromiseAll&) = default;
+    PromiseAll& operator=(PromiseAll&&) = default;
 
     /**
      * Construct a PromiseAll with the vector of BasePromises that it will monitor for resolution/rejection.
@@ -116,72 +117,6 @@ namespace JSLike {
 
     PromiseAll(function<void(shared_ptr<BasePromiseState>)>) = delete;
 
-    PromiseAll Then(function<void(PromiseAll::ResultType &)> thenLambda) {
-      PromiseAll chainedPromise(false);
-      shared_ptr<PromiseAllState> chainedPromiseState = chainedPromise.state();
-
-      auto currentState = state();
-      currentState->Then(
-        // Then Lambda
-        [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
-        {
-          PromiseAll::ResultType &result = resultState->value<PromiseAll::ResultType>();
-          thenLambda(result);
-          chainedPromiseState->resolve(move(result));
-        },
-        // Catch Lambda
-        [chainedPromiseState](exception_ptr ex)
-        {
-          chainedPromiseState->reject(ex);
-        });
-
-      return chainedPromise;
-    }
-
-    PromiseAll Catch(function<void(exception_ptr)> catchLambda) {
-      PromiseAll chainedPromise(false);
-      auto chainedPromiseState = chainedPromise.state();
-
-      auto currentState = state();
-      currentState->Then(
-        // Then Lambda
-        [chainedPromiseState] (shared_ptr<BasePromiseState> resultState)
-        {
-          PromiseAll::ResultType& result = resultState->value<PromiseAll::ResultType>();
-          chainedPromiseState->resolve(move(result));
-        },
-        // Catch Lambda
-        [chainedPromiseState, catchLambda] (auto ex)
-        {
-          catchLambda(ex);
-          chainedPromiseState->reject(ex);
-        });
-
-      return chainedPromise;
-    }
-
-    PromiseAll Then(function<void(PromiseAll::ResultType &)> thenLambda, function<void(exception_ptr)> catchLambda) {
-      PromiseAll chainedPromise(false);
-      shared_ptr<PromiseAllState> chainedPromiseState = chainedPromise.state();
-
-      auto currentState = state();
-      currentState->Then(
-        // Then Lambda
-        [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
-        {
-          PromiseAll::ResultType& result = resultState->value<PromiseAll::ResultType>();
-          thenLambda(result);
-          chainedPromiseState->resolve(move(result));
-        },
-        // Catch Lambda
-        [chainedPromiseState, catchLambda](auto ex)
-        {
-          catchLambda(ex);
-          chainedPromiseState->reject(ex);
-        });
-
-      return chainedPromise;
-    }
 
     /**
      * Called by coroutines when they co_await on a PromiseAll.
@@ -202,10 +137,10 @@ namespace JSLike {
        * Called when invoking a coroutine that returns a PromiseAll.  This method creates
        * a PromiseAll to return to the caller and saves a shared_ptr to its PromiseAll in
        * this promise_type.
-       * 
+       *
        * Later, return_value() "wires up" the saved PromiseAllState so that it settles
        * when the PromiseAll evaluated by co_return settles.
-       * 
+       *
        * @return A pending PromiseAll that is not yet "wired up" to the PromiseAll evaluated
        *         by co_retrun.
        */
@@ -220,10 +155,10 @@ namespace JSLike {
        * resulting PromiseAll is settled, then this method immediately settles (i.e. resolves
        * or rejects) the PromiseAllState saved by get_return_object().  Otherwise, it adds
        * Lambdas that settle the saved PromiseAllState when the resulting PromiseAll settles.
-       * 
+       *
        * In essence, this method "wires up" the PromiseAll resulting from a co_return, to the
        * PromiseAll returned when the coroutine was called so that both settle in the same way.
-       * 
+       *
        * @param coreturnedPromiseAll The PromiseAll returned by co_return (i.e. that results from
        *        evaluating the expression following co_return).
        */
@@ -232,10 +167,9 @@ namespace JSLike {
         auto coreturnedPromiseAllState = coreturnedPromiseAll.state();
 
         coreturnedPromiseAllState->Then(
-          [savedPromiseAllState, coreturnedPromiseAllState](shared_ptr<BasePromiseState> result)
+          [savedPromiseAllState, coreturnedPromiseAllState](shared_ptr<BasePromiseState> resultState)
           {
-            // coreturnedPromiseAll got resolved, so resolve savedPromiseAllState
-            savedPromiseAllState->resolve(move(coreturnedPromiseAllState->value()));
+            savedPromiseAllState->chainResolve(coreturnedPromiseAllState->m_result);    // Pass the shared_ptr<T> down the chain to avoid copy/move.
           },
           [savedPromiseAllState](auto ex)
           {

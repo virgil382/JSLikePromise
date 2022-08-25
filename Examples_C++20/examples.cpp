@@ -146,7 +146,7 @@ void example06() {
   auto p1 = ex6_resolveAfter1Sec<string>();
   auto p2 = ex6_resolveAfter1Sec<double>();
 
-  PromiseAll ex6_promiseAll = PromiseAll({ p0, p1, p2 }).Then([&](auto results)
+  PromiseAll ex6_promiseAll({ p0, p1, p2 });  ex6_promiseAll.Then([&](auto results)
     {
       cout << "ex06: result0 after 1sec=" << results[0]->value<int>() << "\n";
       cout << "ex06: result1 after 1sec=" << results[1]->value<string>() << "\n";

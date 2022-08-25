@@ -223,10 +223,10 @@ namespace JSLike {
         auto coreturnedPromiseState = coreturnedPromise.state();
 
         coreturnedPromiseState->Then(
-          [savedPromiseState, coreturnedPromiseState](shared_ptr<BasePromiseState> result)
+          [savedPromiseState, coreturnedPromiseState](shared_ptr<BasePromiseState> resultState)
           {
             // coreturnedPromise got resolved, so resolve savedPromiseState
-            savedPromiseState->resolve(move(coreturnedPromiseState->value()));  // TODO: Resolve by using the shared pointer to avoid copy/move
+            savedPromiseState->chainResolve(coreturnedPromiseState->m_result);  // Pass the shared_ptr<T> down the chain to avoid copy/move.
           },
           [savedPromiseState](auto ex)
           {
