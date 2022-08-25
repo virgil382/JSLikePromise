@@ -66,7 +66,7 @@ namespace JSLike {
     }
 
     // Override PromiseState::resolve()
-    void resolve(shared_ptr<BasePromiseState> const &result) override {
+    void resolve(shared_ptr<BasePromiseState> const &result) {
       if (m_eptr || m_isResolved) return;
       m_result = make_shared<shared_ptr<BasePromiseState>>(result);
       BasePromiseState::resolve(result);  // Difference vs. PromiseState

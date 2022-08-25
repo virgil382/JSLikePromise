@@ -23,13 +23,14 @@ namespace JSLike {
     PromiseAllState(const PromiseAllState&) = delete;
     PromiseAllState(PromiseAllState&& other) = delete;
     PromiseAllState& operator=(const PromiseAllState&) = delete;
+    PromiseAllState& operator=(PromiseAllState&&) = delete;
 
     void init(shared_ptr<PromiseAllState> &thisState, vector<JSLike::BasePromise> const &monitoredPromises)
     {
       m_nUnresolved = monitoredPromises.size();
 
       if (m_nUnresolved == 0) {
-        thisState->resolve(thisState->m_promiseStates);
+        thisState->resolve(move(thisState->m_promiseStates));
         return;
       }
 
@@ -41,7 +42,7 @@ namespace JSLike {
           {
             thisState->m_nUnresolved--;
             thisState->m_promiseStates[i] = resolvedState;  // "bubble up" the resolved state by placing it in the array
-            if (thisState->m_nUnresolved == 0) thisState->resolve(thisState->m_promiseStates);
+            if (thisState->m_nUnresolved == 0) thisState->resolve(move(thisState->m_promiseStates));
           });
 
         monitoredPromise.m_state->Catch([thisState](auto ex)  // Note that the Lambda keeps a shared_ptr to this PromiseAllState
@@ -51,7 +52,7 @@ namespace JSLike {
       }
     }
 
-    size_t                                                                  m_nUnresolved;
+    size_t                                                        m_nUnresolved;
     vector<shared_ptr<BasePromiseState>>                          m_promiseStates;
   };  // PromiseAllState
 
@@ -115,7 +116,7 @@ namespace JSLike {
 
     PromiseAll(function<void(shared_ptr<BasePromiseState>)>) = delete;
 
-    PromiseAll Then(function<void(PromiseAll::ResultType)> thenLambda) {
+    PromiseAll Then(function<void(PromiseAll::ResultType &)> thenLambda) {
       PromiseAll chainedPromise(false);
       shared_ptr<PromiseAllState> chainedPromiseState = chainedPromise.state();
 
@@ -124,9 +125,9 @@ namespace JSLike {
         // Then Lambda
         [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
         {
-          auto const& result(resultState->value<PromiseAll::ResultType>());
+          PromiseAll::ResultType &result = resultState->value<PromiseAll::ResultType>();
           thenLambda(result);
-          chainedPromiseState->resolve(result);
+          chainedPromiseState->resolve(move(result));
         },
         // Catch Lambda
         [chainedPromiseState](exception_ptr ex)
@@ -146,8 +147,8 @@ namespace JSLike {
         // Then Lambda
         [chainedPromiseState] (shared_ptr<BasePromiseState> resultState)
         {
-          auto const& result(resultState->value<PromiseAll::ResultType>());
-          chainedPromiseState->resolve(result);
+          PromiseAll::ResultType& result = resultState->value<PromiseAll::ResultType>();
+          chainedPromiseState->resolve(move(result));
         },
         // Catch Lambda
         [chainedPromiseState, catchLambda] (auto ex)
@@ -159,7 +160,7 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    PromiseAll Then(function<void(PromiseAll::ResultType)> thenLambda, function<void(exception_ptr)> catchLambda) {
+    PromiseAll Then(function<void(PromiseAll::ResultType &)> thenLambda, function<void(exception_ptr)> catchLambda) {
       PromiseAll chainedPromise(false);
       shared_ptr<PromiseAllState> chainedPromiseState = chainedPromise.state();
 
@@ -168,9 +169,9 @@ namespace JSLike {
         // Then Lambda
         [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
         {
-          auto const& result(resultState->value<PromiseAll::ResultType>());
+          PromiseAll::ResultType& result = resultState->value<PromiseAll::ResultType>();
           thenLambda(result);
-          chainedPromiseState->resolve(result);
+          chainedPromiseState->resolve(move(result));
         },
         // Catch Lambda
         [chainedPromiseState, catchLambda](auto ex)
@@ -234,7 +235,7 @@ namespace JSLike {
           [savedPromiseAllState, coreturnedPromiseAllState](shared_ptr<BasePromiseState> result)
           {
             // coreturnedPromiseAll got resolved, so resolve savedPromiseAllState
-            savedPromiseAllState->resolve(coreturnedPromiseAllState->value());
+            savedPromiseAllState->resolve(move(coreturnedPromiseAllState->value()));
           },
           [savedPromiseAllState](auto ex)
           {

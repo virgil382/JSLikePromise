@@ -30,18 +30,15 @@ namespace JSLike {
     PromiseState(const PromiseState&) = delete;
     PromiseState(PromiseState&& other) = delete;
     PromiseState& operator=(const PromiseState&) = delete;
+    PromiseState& operator=(PromiseState&&) = delete;
 
-    /**
-     * Resolve the Promise to the specified value, and resume the coroutine or
-     * execute the "Then" Lambda.
-     */
-    virtual void resolve(T const &result) {
+    void resolve(T& result) {
       if (m_eptr || m_isResolved) return;  // prevent multiple rejection/resolution
       m_result = make_shared<T>(result);      // copy
       BasePromiseState::resolve(shared_from_this());
     }
 
-    virtual void resolve(T&& result) {
+    void resolve(T&& result) {
       if (m_eptr || m_isResolved) return;  // prevent multiple rejection/resolution
       m_result = make_shared<T>(forward<T>(result));      // move
       BasePromiseState::resolve(shared_from_this());
@@ -52,14 +49,22 @@ namespace JSLike {
     }
 
   private:
+    void chainResolve(shared_ptr<T> result) {
+      if (m_eptr || m_isResolved) return;  // prevent multiple rejection/resolution
+      m_result = result;
+      BasePromiseState::resolve(shared_from_this());
+    }
+
+  private:
     friend struct Promise<T>;
     friend struct PromiseAll;
     friend struct PromiseAny;
     friend struct PromiseAnyState;
 
-    // resolve() constructs m_result, so there is no need for T to have a default constructor.
+    // shared_ptr<T> offers the following benefits (over containing a T):
+    //   1) resolve() constructs m_result, so there is no need for T to have a default constructor.
+    //   2) The shared_ptr<T> can be passed down the chain of PromiseStates without copying/moving T.
     shared_ptr<T>                                      m_result;
-    // TODO: Pass m_result down the chain of PromiseStates instead of resolving each by reference.
   };
 
   /******************************************************************************************/
@@ -72,6 +77,7 @@ namespace JSLike {
     PromiseState(const PromiseState&) = delete;
     PromiseState(PromiseState&& other) = delete;
     PromiseState& operator=(const PromiseState&) = delete;
+    PromiseState& operator=(PromiseState&&) = delete;
   };
 
   /******************************************************************************************/
@@ -93,14 +99,21 @@ namespace JSLike {
       }
     }
 
-    Promise(T const &val)
+    /**
+     * Construct a Promise<T> and resolve it to the specified value of T.  T will not be moved.
+     */
+    Promise(T & val)
     {
-      state()->resolve(val);
+      state()->chainResolve(make_shared<T>(val));
     }
 
+    /**
+     * Construct a Promise<T> and resolve it to the specified value of T.  If T can be moved,
+     * then it will be.
+     */
     Promise(T &&val)
     {
-      state()->resolve(forward<T>(val));
+      state()->chainResolve(make_shared<T>(forward<T>(val)));
     }
 
     // The state of the Promise is constructed by this Promise and it is shared with a promise_type or
@@ -133,9 +146,10 @@ namespace JSLike {
       thisPromiseState->Then(
         [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
         {
-          T &result(resultState->value<T>());
-          thenLambda(result);
-          chainedPromiseState->resolve(result);  // TODO: Resolve by using the shared pointer to avoid copy/move
+          auto castState = dynamic_pointer_cast<PromiseState<T>>(resultState);
+
+          thenLambda(castState->value());
+          chainedPromiseState->chainResolve(castState->m_result);  // Pass the shared_ptr<T> down the chain to avoid copy/move.
         },
         [chainedPromiseState](auto ex)
         {
@@ -145,30 +159,6 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    /**
-     * Promise.Then() is used by normal routines (i.e. not coroutines) to specify a Lambda to be invoked
-     * after the Promise is resolved.  This variant of "Then" expects a Lambda whose parameter
-     * is an rvalue that refers the (resolved) value stored in the Promise state.
-     *
-     * The Lambda is expected to move (i.e. pilfer the resouurces of the value stored in the Promise state).
-     * So it makes no sense to allow another Promise to be chained to this one because if we did, then
-     * that Promise could not provide a valid value to the Lambda that might be "Then"ed to it.  Therefore, 
-     * this method does not return a chained Promise.
-     *
-     * @param thenLambda A Lambda function to be called after the Promise is resolved.  The Lambda is
-     *        invoked expected to move the value stored in the Promise state by using the rvalue provided
-     *        to it.
-     */
-    void Then(function<void(T&&)> thenLambda) {
-      auto thisPromiseState = state();
-      thisPromiseState->Then(
-        [thenLambda](shared_ptr<BasePromiseState> resultState)
-        {
-          T& result(resultState->value<T>());
-          thenLambda(move(result));
-        });
-    }
-
     Promise Catch(function<void(exception_ptr)> catchLambda) {
       Promise chainedPromise;
       auto chainedPromiseState = chainedPromise.state();
@@ -176,11 +166,8 @@ namespace JSLike {
       thisPromiseState->Then(
         [chainedPromiseState](shared_ptr<BasePromiseState> resultState)
         {
-          // Do a move-resolve because there is no Then attached to thisPromiseState, and therefore
-          // no Lambda to ever "look" at the result. So the result can be moved to the chainedPromise.
-          // Needless to say, resolve() will only move the result if T implements a move assignment
-          // operator, otherwise it will copy the result.
-          chainedPromiseState->resolve(move(resultState->value<T>()));  // TODO: Resolve by using the shared pointer to avoid copy/move
+          auto castState = dynamic_pointer_cast<PromiseState<T>>(resultState);
+          chainedPromiseState->chainResolve(castState->m_result);  // Pass the shared_ptr<T> down the chain to avoid copy/move.
         },
         [chainedPromiseState, catchLambda](auto ex)
         {
@@ -199,9 +186,9 @@ namespace JSLike {
       thisPromiseState->Then(
         [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
         {
-          T &result(resultState->value<T>());
-          thenLambda(result);
-          chainedPromiseState->resolve(result);  // TODO: Resolve by using the shared pointer to avoid copy/move
+          auto castState = dynamic_pointer_cast<PromiseState<T>>(resultState);
+          thenLambda(castState->value());
+          chainedPromiseState->chainResolve(castState->m_result);  // Pass the shared_ptr<T> down the chain to avoid copy/move.
         },
         [chainedPromiseState, catchLambda](auto ex)
         {
@@ -210,19 +197,6 @@ namespace JSLike {
         });
 
       return chainedPromise;
-    }
-
-    void Then(function<void(T&&)> thenLambda, function<void(exception_ptr)> catchLambda) {
-      auto thisPromiseState = state();
-      thisPromiseState->Then(
-        [thenLambda](shared_ptr<BasePromiseState> resultState)
-        {
-          thenLambda(move(resultState->value<T>()));
-        },
-        [catchLambda](auto ex)
-        {
-          catchLambda(ex);
-        });
     }
 
     /**
@@ -283,10 +257,8 @@ namespace JSLike {
        */
       T &await_resume() {
         m_state->rethrowIfRejected();
-
-        shared_ptr<PromiseState<T>> castState = dynamic_pointer_cast<PromiseState<T>>(m_state);
-
-        return castState->value();
+        T& ref = m_state->value<T>();
+        return ref;
       }
     };
 

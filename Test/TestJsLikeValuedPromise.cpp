@@ -505,7 +505,7 @@ namespace TestJSLikeValuedPromise
 	TEST_CLASS(TestResolution)
 	{
 	public:
-		TEST_METHOD(PostresolvedMovable_Then)
+		TEST_METHOD(PostresolvedCopy_ThenCatchMove)
 		{
 			auto [p0, p0state] = Promise<TranscriptionCounter>::getUnresolvedPromiseAndState();  // resolved later
 
@@ -513,7 +513,41 @@ namespace TestJSLikeValuedPromise
 			int nCatchCalls = 0;
 
 			p0.Then(
-				[&](TranscriptionCounter && result) {
+				[&](TranscriptionCounter& result) {
+					TranscriptionCounter r; // This should invoke the default constructor
+					r = move(result);       // This should invoke the move assignment operator
+					nThenCalls++;
+				},
+				[&](auto ex) {
+					nCatchCalls++;
+				});
+
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+
+			// Construct a TranscriptionCounter, and use it to resolve the Promise.
+			int nMoveCtor = 0, nMoveAssign = 0, nCopyCtor = 0, nCopyAssign = 0;
+			TranscriptionCounter* obj = TranscriptionCounter::constructAndSetCounters("obj1", &nMoveCtor, &nMoveAssign, &nCopyCtor, &nCopyAssign);
+			p0state->resolve(*obj);             // This should invoke the copy assignment operator
+
+			Assert::AreEqual(0, nMoveCtor);
+			Assert::AreEqual(1, nMoveAssign);  // performed inside the Then Lambda above
+			Assert::AreEqual(1, nCopyCtor);    // performed by resolve(T&)
+			Assert::AreEqual(0, nCopyAssign);
+
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(PostresolvedCopy_ThenMove)
+		{
+			auto [p0, p0state] = Promise<TranscriptionCounter>::getUnresolvedPromiseAndState();  // resolved later
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			p0.Then(
+				[&](TranscriptionCounter& result) {
 					TranscriptionCounter r; // This should invoke the default constructor
 					r = move(result);       // This should invoke the move assignment operator
 					nThenCalls++;
@@ -524,19 +558,157 @@ namespace TestJSLikeValuedPromise
 
 			// Construct a TranscriptionCounter, and use it to resolve the Promise.
 			int nMoveCtor = 0, nMoveAssign = 0, nCopyCtor = 0, nCopyAssign = 0;
-			TranscriptionCounter *obj = TranscriptionCounter::constructAndSetCounters("obj1", &nMoveCtor, &nMoveAssign, &nCopyCtor, &nCopyAssign);
-			p0state->resolve(move(*obj));  // This should invoke the move assignment operator
+			TranscriptionCounter* obj = TranscriptionCounter::constructAndSetCounters("obj1", &nMoveCtor, &nMoveAssign, &nCopyCtor, &nCopyAssign);
+			p0state->resolve(*obj);  // This should invoke the move assignment operator
 
-			Assert::AreEqual(1, nMoveCtor);    // performed by resolve()
+			Assert::AreEqual(0, nMoveCtor);
 			Assert::AreEqual(1, nMoveAssign);  // performed inside the Then Lambda above
-			Assert::AreEqual(0, nCopyCtor);
+			Assert::AreEqual(1, nCopyCtor);    // performed by resolve(T&)
 			Assert::AreEqual(0, nCopyAssign);
 
 			Assert::AreEqual(1, nThenCalls);
 			Assert::AreEqual(0, nCatchCalls);
 		}
 
-		TEST_METHOD(PostresolvedMovable_ThenCatch)
+		TEST_METHOD(PostresolvedLiteral_Catch_Then)
+		{
+			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();  // resolved later
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			p0.Catch(
+				[&](auto ex) { nCatchCalls++; }).Then(
+					[&](int& result) {
+						Assert::AreEqual(1, result);
+						nThenCalls++;
+					});
+
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+			p0state->resolve(1);  // Resolve
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(PostresolvedLiteral_Then)
+		{
+			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();  // resolved later
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			p0.Then(
+				[&](int& result) {
+					Assert::AreEqual(1, result);
+					nThenCalls++;
+				});
+
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+			p0state->resolve(1);  // Resolve
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(PostresolvedLiteral_Then_Catch)
+		{
+			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();  // resolved later
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			p0.Then(
+				[&](int& result) {
+					Assert::AreEqual(1, result);
+					nThenCalls++;
+				}).Catch(
+					[&](auto ex) {
+						nCatchCalls++;
+					});
+
+				Assert::AreEqual(0, nThenCalls);
+				Assert::AreEqual(0, nCatchCalls);
+				p0state->resolve(1);  // Resolve
+				Assert::AreEqual(1, nThenCalls);
+				Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(PostresolvedLiteral_Then_Then)
+		{
+			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();  // resolved later
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			p0.Then(
+				[&](int& result) {
+					Assert::AreEqual(1, result);
+					nThenCalls++;
+				}).Then(
+					[&](int& result) {
+						Assert::AreEqual(1, result);
+						nThenCalls++;
+					});
+
+				Assert::AreEqual(0, nThenCalls);
+				Assert::AreEqual(0, nCatchCalls);
+				p0state->resolve(1);  // Resolve
+				Assert::AreEqual(2, nThenCalls);
+				Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(PostresolvedLiteral_ThenCatch)
+		{
+			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();  // resolved later
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			p0.Then(
+				[&](int& result) {
+					Assert::AreEqual(1, result);
+					nThenCalls++;
+				},
+				[&](auto ex) {
+					nCatchCalls++;
+				});
+
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+			p0state->resolve(1);  // Resolve
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(PostresolvedLiteral_ThenCatch_Then)
+		{
+			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();  // resolved later
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			p0.Then(
+				[&](int& result) {
+					Assert::AreEqual(1, result);
+					nThenCalls++;
+				},
+				[&](auto ex) {
+					nCatchCalls++;
+				}).Then(
+					[&](int& result) {
+						Assert::AreEqual(1, result);
+						nThenCalls++;
+					});
+
+				Assert::AreEqual(0, nThenCalls);
+				Assert::AreEqual(0, nCatchCalls);
+				p0state->resolve(1);  // Resolve
+				Assert::AreEqual(2, nThenCalls);
+				Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(PostresolvedMove_ThenCatchMove)
 		{
 			auto [p0, p0state] = Promise<TranscriptionCounter>::getUnresolvedPromiseAndState();  // resolved later
 
@@ -544,7 +716,7 @@ namespace TestJSLikeValuedPromise
 			int nCatchCalls = 0;
 
 			p0.Then(
-				[&](TranscriptionCounter&& result) {
+				[&](TranscriptionCounter& result) {
 					TranscriptionCounter r; // This should invoke the default constructor
 					r = move(result);       // This should invoke the move assignment operator
 					nThenCalls++;
@@ -561,7 +733,7 @@ namespace TestJSLikeValuedPromise
 			TranscriptionCounter* obj = TranscriptionCounter::constructAndSetCounters("obj1", &nMoveCtor, &nMoveAssign, &nCopyCtor, &nCopyAssign);
 			p0state->resolve(move(*obj));      // This should invoke the move assignment operator
 
-			Assert::AreEqual(1, nMoveCtor);    // performed by resolve()
+			Assert::AreEqual(1, nMoveCtor);    // performed by resolve(T&&)
 			Assert::AreEqual(1, nMoveAssign);  // performed inside the Then Lambda above
 			Assert::AreEqual(0, nCopyCtor);
 			Assert::AreEqual(0, nCopyAssign);
@@ -570,7 +742,61 @@ namespace TestJSLikeValuedPromise
 			Assert::AreEqual(0, nCatchCalls);
 		}
 
-		TEST_METHOD(Preresolved_Catch_Then)
+		TEST_METHOD(PostresolvedMove_ThenMove)
+		{
+			auto [p0, p0state] = Promise<TranscriptionCounter>::getUnresolvedPromiseAndState();  // resolved later
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			p0.Then(
+				[&](TranscriptionCounter & result) {
+					TranscriptionCounter r; // This should invoke the default constructor
+					r = move(result);       // This should invoke the move assignment operator
+					nThenCalls++;
+				});
+
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+
+			// Construct a TranscriptionCounter, and use it to resolve the Promise.
+			int nMoveCtor = 0, nMoveAssign = 0, nCopyCtor = 0, nCopyAssign = 0;
+			TranscriptionCounter *obj = TranscriptionCounter::constructAndSetCounters("obj1", &nMoveCtor, &nMoveAssign, &nCopyCtor, &nCopyAssign);
+			p0state->resolve(move(*obj));  // This should invoke the move assignment operator
+
+			Assert::AreEqual(1, nMoveCtor);    // performed by resolve(T&&)
+			Assert::AreEqual(1, nMoveAssign);  // performed inside the Then Lambda above
+			Assert::AreEqual(0, nCopyCtor);
+			Assert::AreEqual(0, nCopyAssign);
+
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(PreresolvedCopy_Then)
+		{
+			// Construct a TranscriptionCounter, and use it to resolve the Promise.
+			int nMoveCtor = 0, nMoveAssign = 0, nCopyCtor = 0, nCopyAssign = 0;
+			TranscriptionCounter* obj = TranscriptionCounter::constructAndSetCounters("obj1", &nMoveCtor, &nMoveAssign, &nCopyCtor, &nCopyAssign);
+			Promise<TranscriptionCounter> p1(*obj);                                              // preresolved
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+			p1.Then(
+				[&](TranscriptionCounter& result) {
+					nThenCalls++;
+				});
+
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+
+			Assert::AreEqual(0, nMoveCtor);
+			Assert::AreEqual(0, nMoveAssign);
+			Assert::AreEqual(1, nCopyCtor);    // performed by Promise(T &)
+			Assert::AreEqual(0, nCopyAssign);
+		}
+
+		TEST_METHOD(PreresolvedLiteral_Catch_Then)
 		{
 			Promise<int> p1(1);                                              // preresolved
 
@@ -587,7 +813,7 @@ namespace TestJSLikeValuedPromise
 			Assert::AreEqual(0, nCatchCalls);
 		}
 
-		TEST_METHOD(Preresolved_Then)
+		TEST_METHOD(PreresolvedLiteral_Then)
 		{
 			Promise<int> p1(1);                                              // preresolved
 
@@ -603,7 +829,7 @@ namespace TestJSLikeValuedPromise
 			Assert::AreEqual(0, nCatchCalls);
 		}
 
-		TEST_METHOD(Preresolved_Then_Catch)
+		TEST_METHOD(PreresolvedLiteral_Then_Catch)
 		{
 			Promise<int> p1(1);                                              // preresolved
 
@@ -620,7 +846,7 @@ namespace TestJSLikeValuedPromise
 			Assert::AreEqual(0, nCatchCalls);
 		}
 
-		TEST_METHOD(Preresolved_Then_Then)
+		TEST_METHOD(PreresolvedLiteral_Then_Then)
 		{
 			Promise<int> p1(1);                                              // preresolved
 
@@ -640,7 +866,7 @@ namespace TestJSLikeValuedPromise
 			Assert::AreEqual(0, nCatchCalls);
 		}
 
-		TEST_METHOD(Preresolved_ThenCatch)
+		TEST_METHOD(PreresolvedLiteral_ThenCatch)
 		{
 			Promise<int> p1(1);                                              // preresolved
 
@@ -657,7 +883,7 @@ namespace TestJSLikeValuedPromise
 			Assert::AreEqual(0, nCatchCalls);
 		}
 
-		TEST_METHOD(Preresolved_ThenCatch_Then)
+		TEST_METHOD(PreresolvedLiteral_ThenCatch_Then)
 		{
 			Promise<int> p1(1);                                              // preresolved
 
@@ -678,142 +904,27 @@ namespace TestJSLikeValuedPromise
 			Assert::AreEqual(0, nCatchCalls);
 		}
 
-		TEST_METHOD(Unresolved_Catch_Then)
+		TEST_METHOD(PreresolvedMove_Then)
 		{
-			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();  // resolved later
+			// Construct a TranscriptionCounter, and use it to resolve the Promise.
+			int nMoveCtor = 0, nMoveAssign = 0, nCopyCtor = 0, nCopyAssign = 0;
+			TranscriptionCounter* obj = TranscriptionCounter::constructAndSetCounters("obj1", &nMoveCtor, &nMoveAssign, &nCopyCtor, &nCopyAssign);
+			Promise<TranscriptionCounter> p1(move(*obj));                                              // preresolved
 
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
-
-			p0.Catch(
-				[&](auto ex) { nCatchCalls++; }).Then(
-				[&](int &result) {
-					Assert::AreEqual(1, result);
+			p1.Then(
+				[&](TranscriptionCounter& result) {
 					nThenCalls++;
 				});
 
-			Assert::AreEqual(0, nThenCalls);
-			Assert::AreEqual(0, nCatchCalls);
-			p0state->resolve(1);  // Resolve
 			Assert::AreEqual(1, nThenCalls);
 			Assert::AreEqual(0, nCatchCalls);
-		}
 
-		TEST_METHOD(Unresolved_Then)
-		{
-			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();  // resolved later
-
-			int nThenCalls = 0;
-			int nCatchCalls = 0;
-
-			p0.Then(
-					[&](int &result) {
-						Assert::AreEqual(1, result);
-						nThenCalls++;
-					});
-
-			Assert::AreEqual(0, nThenCalls);
-			Assert::AreEqual(0, nCatchCalls);
-			p0state->resolve(1);  // Resolve
-			Assert::AreEqual(1, nThenCalls);
-			Assert::AreEqual(0, nCatchCalls);
-		}
-
-		TEST_METHOD(Unresolved_Then_Catch)
-		{
-			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();  // resolved later
-
-			int nThenCalls = 0;
-			int nCatchCalls = 0;
-
-			p0.Then(
-				[&](int &result) {
-					Assert::AreEqual(1, result);
-					nThenCalls++;
-				}).Catch(
-				[&](auto ex) {
-						nCatchCalls++;
-				});
-
-			Assert::AreEqual(0, nThenCalls);
-			Assert::AreEqual(0, nCatchCalls);
-			p0state->resolve(1);  // Resolve
-			Assert::AreEqual(1, nThenCalls);
-			Assert::AreEqual(0, nCatchCalls);
-		}
-
-		TEST_METHOD(Unresolved_Then_Then)
-		{
-			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();  // resolved later
-
-			int nThenCalls = 0;
-			int nCatchCalls = 0;
-
-			p0.Then(
-				[&](int &result) {
-					Assert::AreEqual(1, result);
-					nThenCalls++;
-				}).Then(
-				[&](int &result) {
-					Assert::AreEqual(1, result);
-					nThenCalls++;
-				});
-
-				Assert::AreEqual(0, nThenCalls);
-				Assert::AreEqual(0, nCatchCalls);
-				p0state->resolve(1);  // Resolve
-				Assert::AreEqual(2, nThenCalls);
-				Assert::AreEqual(0, nCatchCalls);
-		}
-
-		TEST_METHOD(Unresolved_ThenCatch)
-		{
-			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();  // resolved later
-
-			int nThenCalls = 0;
-			int nCatchCalls = 0;
-
-			p0.Then(
-				[&](int &result) {
-					Assert::AreEqual(1, result);
-					nThenCalls++;
-				},
-				[&](auto ex) {
-					nCatchCalls++;
-				});
-
-				Assert::AreEqual(0, nThenCalls);
-				Assert::AreEqual(0, nCatchCalls);
-				p0state->resolve(1);  // Resolve
-				Assert::AreEqual(1, nThenCalls);
-				Assert::AreEqual(0, nCatchCalls);
-		}
-
-		TEST_METHOD(Unresolved_ThenCatch_Then)
-		{
-			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();  // resolved later
-
-			int nThenCalls = 0;
-			int nCatchCalls = 0;
-
-			p0.Then(
-				[&](int &result) {
-					Assert::AreEqual(1, result);
-					nThenCalls++;
-				},
-				[&](auto ex) {
-					nCatchCalls++;
-				}).Then(
-				[&](int &result) {
-					Assert::AreEqual(1, result);
-					nThenCalls++;
-				});
-
-			Assert::AreEqual(0, nThenCalls);
-			Assert::AreEqual(0, nCatchCalls);
-			p0state->resolve(1);  // Resolve
-			Assert::AreEqual(2, nThenCalls);
-			Assert::AreEqual(0, nCatchCalls);
+			Assert::AreEqual(1, nMoveCtor);    // performed by Promise(T &&)
+			Assert::AreEqual(0, nMoveAssign);
+			Assert::AreEqual(0, nCopyCtor);
+			Assert::AreEqual(0, nCopyAssign);
 		}
 		//***************************************************************************************
 	};

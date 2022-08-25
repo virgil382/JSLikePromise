@@ -54,6 +54,7 @@ namespace JSLike {
     BasePromiseState(const BasePromiseState&) = delete;
     BasePromiseState(BasePromiseState&& other) = delete;
     BasePromiseState& operator=(const BasePromiseState&) = delete;
+    BasePromiseState& operator=(BasePromiseState&&) = delete;
 
     virtual ~BasePromiseState() {}  // Force BasePromiseState to be polymorphic to support dynamic_cast<>.
 
@@ -110,15 +111,9 @@ namespace JSLike {
       return castState->value();
     }
 
-    /**
-     * Resolve a PromiseState<T>.  Use this method when you know that your BasePromiseState is a
-     * PromiseState<T>.  This allows you to store references to PromiseState<T>s as BasePromiseStates,
-     * and to operate on them as PromiseState<T>s.
-     *
-     * @param value The value to which to resolve the PromiseState.
-     */
+    // TODO: Add UT that tests PreresolvedCopy
     template<typename T>
-    void resolve(T const& value) {
+    void resolve(T& value) {
       JSLike::PromiseState<T>* castState = dynamic_cast<JSLike::PromiseState<T> *>(this);
       if (!castState) {
         string err("bad cast from BasePromiseState to PromiseState<");
@@ -127,6 +122,26 @@ namespace JSLike {
         throw bad_cast::__construct_from_string_literal(err.c_str());
       }
       castState->resolve(value);
+    }
+
+    // TODO: Add UT that tests PreresolvedMove and PreresolvedLiteral
+    /**
+     * Resolve a PromiseState<T>.  Use this method when you know that your BasePromiseState is a
+     * PromiseState<T>.  This allows you to store references to PromiseState<T>s as BasePromiseStates,
+     * and to operate on them as PromiseState<T>s.
+     *
+     * @param value The value to which to resolve the PromiseState.
+     */
+    template<typename T>
+    void resolve(T && value) {
+      JSLike::PromiseState<T>* castState = dynamic_cast<JSLike::PromiseState<T> *>(this);
+      if (!castState) {
+        string err("bad cast from BasePromiseState to PromiseState<");
+        err += typeid(T).name();
+        err += ">";
+        throw bad_cast::__construct_from_string_literal(err.c_str());
+      }
+      castState->resolve(forward<T>(value));
     }
 
     /**
