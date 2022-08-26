@@ -38,14 +38,14 @@ namespace JSLike {
         auto monitoredPromise = monitoredPromises[i];
 
         m_promiseStates.push_back(monitoredPromise.m_state);
-        monitoredPromise.m_state->Then([thisState, i](shared_ptr<BasePromiseState> resolvedState)  // Note that the Lambda keeps a shared_ptr to this PromiseAllState
+        monitoredPromise.m_state->Then(
+          [thisState, i](shared_ptr<BasePromiseState> resolvedState)  // Note that the Lambda keeps a shared_ptr to this PromiseAllState
           {
             thisState->m_nUnresolved--;
             thisState->m_promiseStates[i] = resolvedState;  // "bubble up" the resolved state by placing it in the array
             if (thisState->m_nUnresolved == 0) thisState->resolve(move(thisState->m_promiseStates));
-          });
-
-        monitoredPromise.m_state->Catch([thisState](auto ex)  // Note that the Lambda keeps a shared_ptr to this PromiseAllState
+          },
+          [thisState](auto ex)  // Note that the Lambda keeps a shared_ptr to this PromiseAllState
           {
             thisState->reject(ex);
           });
