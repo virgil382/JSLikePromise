@@ -25,7 +25,7 @@ namespace JSLike {
     PromiseAllState& operator=(const PromiseAllState&) = delete;
     PromiseAllState& operator=(PromiseAllState&&) = delete;
 
-    void init(shared_ptr<PromiseAllState> &thisState, vector<JSLike::BasePromise> const &monitoredPromises)
+    void init(shared_ptr<PromiseAllState> &thisState, vector<BasePromise> const &monitoredPromises)
     {
       m_nUnresolved = monitoredPromises.size();
 
@@ -163,7 +163,7 @@ namespace JSLike {
        *        evaluating the expression following co_return).
        */
       void return_value(PromiseAll coreturnedPromiseAll) {
-        auto savedPromiseAllState = dynamic_pointer_cast<JSLike::PromiseAllState>(m_state);
+        auto savedPromiseAllState = dynamic_pointer_cast<PromiseAllState>(m_state);
         auto coreturnedPromiseAllState = coreturnedPromiseAll.state();
 
         coreturnedPromiseAllState->Then(
@@ -185,7 +185,7 @@ namespace JSLike {
     shared_ptr<PromiseAllState> state() {
       if (!m_state) m_state = make_shared<PromiseAllState>();
 
-      auto castState = dynamic_pointer_cast<JSLike::PromiseAllState>(m_state);
+      auto castState = dynamic_pointer_cast<PromiseAllState>(m_state);
       return castState;
     }
 
