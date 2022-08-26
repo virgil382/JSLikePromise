@@ -26,7 +26,7 @@ namespace JSLike {
     PromiseAnyState(PromiseAnyState&& other) = delete;
     PromiseAnyState& operator=(const PromiseAnyState&) = delete;
 
-    void init(shared_ptr<PromiseAnyState> &thisState, vector<JSLike::BasePromise> const &monitoredPromises)
+    void init(shared_ptr<PromiseAnyState> &thisState, vector<BasePromise> const &monitoredPromises)
     {
       size_t vectorSize = monitoredPromises.size();
 
@@ -40,13 +40,13 @@ namespace JSLike {
         auto monitoredPromiseState = monitoredPromise.m_state;
 
         // May call BasePromiseState::Then()  or  PromiseAnyState::Then()
-        monitoredPromiseState->Then([thisState, monitoredPromiseState](shared_ptr<BasePromiseState> resultState)  // Note that the Lambda keeps a shared_ptr to this PromiseAllState
+        monitoredPromiseState->Then(
+          [thisState, monitoredPromiseState](shared_ptr<BasePromiseState> resultState)  // Note that the Lambda keeps a shared_ptr to this PromiseAllState
           {
-            // Call PromiseAny::resolve()
+            // Call PromiseAnyState::resolve()
             thisState->resolve(resultState);
-          });
-
-        monitoredPromise.Catch([thisState](auto ex)  // Note that the Lambda keeps a shared_ptr to this PromiseAllState
+          },
+          [thisState](auto ex)  // Note that the Lambda keeps a shared_ptr to this PromiseAllState
           {
             thisState->reject(ex);
           });
@@ -118,7 +118,7 @@ namespace JSLike {
      * Construct a PromiseAny with the vector of BasePromises that it will monitor for resolution/rejection.
      * @param promises The vector of BasePromises.
      */
-    PromiseAny(vector<JSLike::BasePromise> promises)
+    PromiseAny(vector<BasePromise> const &promises)
     {
       auto s = state();
       s->init(s, promises);
@@ -233,18 +233,6 @@ namespace JSLike {
         return p;
       }
 
-      /**
-       * Called after co_return evaluates an expression that results in a PromiseAny.  If the
-       * resulting PromiseAny is settled, then this method immediately settles (i.e. resolves
-       * or rejects) the PromiseAnyState saved by get_return_object().  Otherwise, it adds
-       * Lambdas that settle the saved PromiseAnyState when the resulting PromiseAny settles.
-       *
-       * In essence, this method "wires up" the PromiseAny resulting from a co_return, to the
-       * PromiseAny returned when the coroutine was called so that both settle in the same way.
-       *
-       * @param coreturnedPromiseAny The PromiseAny returned by co_return (i.e. that results from
-       *        evaluating the expression following co_return).
-       */
       void return_value(PromiseAny coreturnedPromiseAny) {
         auto savedPromiseAnyState = dynamic_pointer_cast<PromiseAnyState>(m_state);
         auto coreturnedPromiseAnyState = coreturnedPromiseAny.state();

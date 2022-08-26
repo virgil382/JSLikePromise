@@ -176,7 +176,7 @@ void example07() {
   auto p1 = ex7_resolveAfter1Sec<string>();
   auto p2 = ex7_resolveAfter1Sec<double>();
 
-  PromiseAny ex7_promiseAny = PromiseAny({ p0, p1, p2 }).Then([&](auto result)
+  PromiseAny ex7_promiseAny({ p0, p1, p2 }); ex7_promiseAny.Then([&](auto result)
     {
       if      (result->isValueOfType<int>())    cout << "ex07: result0 after 1sec=" << result->value<int>() << "\n";
       else if (result->isValueOfType<string>()) cout << "ex07: result1 after 1sec=" << result->value<string>() << "\n";

@@ -23,23 +23,30 @@ namespace TestJSLikePromiseAny
 	TEST_CLASS(TestResolution)
 	{
 	public:
-		TEST_METHOD(SomePreresolved_Then)
+		TEST_METHOD(NonePreresolved_Catch_Then)
 		{
 			// Create a few Promises to give to PromiseAny
-			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // resolved later
-			Promise<int> p1(1);                                              // preresolved
-			Promise<string> p2("Hello");                                     // preresolved
-			Promise<double> p3(3.3);                                         // preresolved
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();        // never resolved
+			auto [p1, p1state] = Promise<int>::getUnresolvedPromiseAndState();     // resolved later
+			auto [p2, p2state] = Promise<string>::getUnresolvedPromiseAndState();  // never resolved
+			auto [p3, p3state] = Promise<double>::getUnresolvedPromiseAndState();  // never resolved
 
-			bool areSomeResolved = false;
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
 
-			PromiseAny pa = PromiseAny({ p0, p1, p2, p3 }).Then([&](auto state)
-				{
-					Assert::AreEqual(1, state->value<int>());
-					areSomeResolved = true;
-				});
+			PromiseAny pa({ p0, p1, p2, p3 });
+			pa.Catch([&](auto ex) { nCatchCalls++; })
+				.Then([&](auto state)
+					{
+						Assert::AreEqual(1, state->value<int>());
+						nThenCalls++;
+					});
 
-			Assert::IsTrue(areSomeResolved);
+			Assert::AreEqual(0, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+			p1state->resolve(1);  // Resolve p1
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
 		}
 
 		TEST_METHOD(NonePreresolved_Then)
@@ -52,7 +59,8 @@ namespace TestJSLikePromiseAny
 
 			bool areSomeResolved = false;
 
-			PromiseAny pa = PromiseAny({ p0, p1, p2, p3 }).Then([&](auto state)
+			PromiseAny pa({ p0, p1, p2, p3 }); 
+			pa.Then([&](auto state)
 				{
 					Assert::AreEqual(1, state->value<int>());
 					areSomeResolved = true;
@@ -61,151 +69,6 @@ namespace TestJSLikePromiseAny
 			Assert::IsFalse(areSomeResolved);
 			p1state->resolve(1);
 			Assert::IsTrue(areSomeResolved);
-		}
-
-		TEST_METHOD(SomePreresolved_Then_Then)
-		{
-			// Create a few Promises to give to PromiseAny
-			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // never resolved
-			Promise<int> p1(1);                                              // preresolved
-			Promise<string> p2("Hello");                                     // preresolved
-			Promise<double> p3(3.3);                                         // preresolved
-
-			int nThenCalls = 0;
-
-			PromiseAny pa = PromiseAny({ p0, p1, p2, p3 }).Then([&](auto state)
-				{
-					Assert::AreEqual(1, state->value<int>());
-					nThenCalls++;
-				}).Then([&](auto state)
-					{
-						Assert::AreEqual(1, state->value<int>());
-						nThenCalls++;
-					});
-
-				Assert::AreEqual(2, nThenCalls);
-		}
-
-		TEST_METHOD(SomePreresolved_Catch_Then)
-		{
-			// Create a few Promises to give to PromiseAny
-			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // never resolved
-			Promise<int> p1(1);                                              // preresolved
-			Promise<string> p2("Hello");                                     // preresolved
-			Promise<double> p3(3.3);                                         // preresolved
-
-			int nThenCalls = 0;
-			int nCatchCalls = 0;
-
-			PromiseAny pa = PromiseAny({ p0, p1, p2, p3 })
-				.Catch([&](auto ex) { nCatchCalls++; })
-				.Then([&](auto state)
-					{
-						Assert::AreEqual(1, state->value<int>());
-						nThenCalls++;
-					});
-
-			Assert::AreEqual(1, nThenCalls);
-			Assert::AreEqual(0, nCatchCalls);
-		}
-
-		TEST_METHOD(SomePreresolved_Then_Catch)
-		{
-			// Create a few Promises to give to PromiseAny
-			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // never resolved
-			Promise<int> p1(1);                                              // preresolved
-			Promise<string> p2("Hello");                                     // preresolved
-			Promise<double> p3(3.3);                                         // preresolved
-
-			int nThenCalls = 0;
-			int nCatchCalls = 0;
-
-			PromiseAny pa = PromiseAny({ p0, p1, p2, p3 })
-				.Then([&](auto state)
-					{
-						Assert::AreEqual(1, state->value<int>());
-						nThenCalls++;
-					})
-				.Catch([&](auto state) { nCatchCalls++; });
-
-			Assert::AreEqual(1, nThenCalls);
-			Assert::AreEqual(0, nCatchCalls);
-		}
-
-		TEST_METHOD(SomePreresolved_ThenCatch)
-		{
-			// Create a few Promises to give to PromiseAny
-			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // never resolved
-			Promise<int> p1(1);                                              // preresolved
-			Promise<string> p2("Hello");                                     // preresolved
-			Promise<double> p3(3.3);                                         // preresolved
-
-			int nThenCalls = 0;
-			int nCatchCalls = 0;
-
-			PromiseAny pa = PromiseAny({ p0, p1, p2, p3 }).Then(
-				[&](auto state)
-				{
-					Assert::AreEqual(1, state->value<int>());
-					nThenCalls++;
-				},
-				[&](auto state) { nCatchCalls++; });
-
-				Assert::AreEqual(1, nThenCalls);
-				Assert::AreEqual(0, nCatchCalls);
-		}
-
-		TEST_METHOD(SomePreresolved_ThenCatch_Then)
-		{
-			// Create a few Promises to give to PromiseAny
-			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // never resolved
-			Promise<int> p1(1);                                              // preresolved
-			Promise<string> p2("Hello");                                     // preresolved
-			Promise<double> p3(3.3);                                         // preresolved
-
-			int nThenCalls = 0;
-			int nCatchCalls = 0;
-
-			PromiseAny pa = PromiseAny({ p0, p1, p2, p3 }).Then(
-				[&](auto state)
-				{
-					Assert::AreEqual(1, state->value<int>());
-					nThenCalls++;
-				},
-				[&](auto state) { nCatchCalls++; }).Then(
-				[&](auto state)
-				{
-					Assert::AreEqual(1, state->value<int>());
-					nThenCalls++;
-				});
-
-			Assert::AreEqual(2, nThenCalls);
-			Assert::AreEqual(0, nCatchCalls);
-		}
-
-		TEST_METHOD(NonePreresolved_Then_Then)
-		{
-			// Create a few Promises to give to PromiseAny
-			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();        // never resolved
-			auto [p1, p1state] = Promise<int>::getUnresolvedPromiseAndState();     // resolved later
-			auto [p2, p2state] = Promise<string>::getUnresolvedPromiseAndState();  // never resolved
-			auto [p3, p3state] = Promise<double>::getUnresolvedPromiseAndState();  // never resolved
-
-			int nThenCalls = 0;
-
-			PromiseAny pa = PromiseAny({ p0, p1, p2, p3 }).Then([&](auto state)
-				{
-					Assert::AreEqual(1, state->value<int>());
-					nThenCalls++;
-				}).Then([&](auto state)
-					{
-						Assert::AreEqual(1, state->value<int>());
-						nThenCalls++;
-					});
-
-				Assert::AreEqual(0, nThenCalls);
-				p1state->resolve(1);  // Resolve p1
-				Assert::AreEqual(2, nThenCalls);
 		}
 
 		TEST_METHOD(NonePreresolved_Then_Catch)
@@ -219,7 +82,8 @@ namespace TestJSLikePromiseAny
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
 
-			PromiseAny pa = PromiseAny({ p0, p1, p2, p3 }).Then([&](auto state)
+			PromiseAny pa({ p0, p1, p2, p3 });
+			pa.Then([&](auto state)
 				{
 					Assert::AreEqual(1, state->value<int>());
 					nThenCalls++;
@@ -233,6 +97,32 @@ namespace TestJSLikePromiseAny
 				Assert::AreEqual(0, nCatchCalls);
 		}
 
+		TEST_METHOD(NonePreresolved_Then_Then)
+		{
+			// Create a few Promises to give to PromiseAny
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();        // never resolved
+			auto [p1, p1state] = Promise<int>::getUnresolvedPromiseAndState();     // resolved later
+			auto [p2, p2state] = Promise<string>::getUnresolvedPromiseAndState();  // never resolved
+			auto [p3, p3state] = Promise<double>::getUnresolvedPromiseAndState();  // never resolved
+
+			int nThenCalls = 0;
+
+			PromiseAny pa({ p0, p1, p2, p3 });
+			pa.Then([&](auto state)
+				{
+					Assert::AreEqual(1, state->value<int>());
+					nThenCalls++;
+				}).Then([&](auto state)
+					{
+						Assert::AreEqual(1, state->value<int>());
+						nThenCalls++;
+					});
+
+				Assert::AreEqual(0, nThenCalls);
+				p1state->resolve(1);  // Resolve p1
+				Assert::AreEqual(2, nThenCalls);
+		}
+
 		TEST_METHOD(NonePreresolved_ThenCatch)
 		{
 			// Create a few Promises to give to PromiseAny
@@ -244,7 +134,8 @@ namespace TestJSLikePromiseAny
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
 
-			PromiseAny pa = PromiseAny({ p0, p1, p2, p3 }).Then(
+			PromiseAny pa({ p0, p1, p2, p3 });
+			pa.Then(
 				[&](auto state)
 				{
 					Assert::AreEqual(1, state->value<int>());
@@ -270,50 +161,168 @@ namespace TestJSLikePromiseAny
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
 
-			PromiseAny pa = PromiseAny({ p0, p1, p2, p3 }).Then(
+			PromiseAny pa({ p0, p1, p2, p3 });
+			pa.Then(
 				[&](auto state)
 				{
 					Assert::AreEqual(1, state->value<int>());
 					nThenCalls++;
 				},
 				[&](auto ex) { nCatchCalls++; }).Then(
+					[&](auto state)
+					{
+						Assert::AreEqual(1, state->value<int>());
+						nThenCalls++;
+					});
+
+				Assert::AreEqual(0, nThenCalls);
+				Assert::AreEqual(0, nCatchCalls);
+				p1state->resolve(1);  // Resolve p1
+				Assert::AreEqual(2, nThenCalls);
+				Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(SomePreresolved_Catch_Then)
+		{
+			// Create a few Promises to give to PromiseAny
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // never resolved
+			Promise<int> p1(1);                                              // preresolved
+			Promise<string> p2("Hello");                                     // preresolved
+			Promise<double> p3(3.3);                                         // preresolved
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			PromiseAny pa({ p0, p1, p2, p3 });
+			pa.Catch([&](auto ex) { nCatchCalls++; })
+				.Then([&](auto state)
+					{
+						Assert::AreEqual(1, state->value<int>());
+						nThenCalls++;
+					});
+
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(SomePreresolved_Then)
+		{
+			// Create a few Promises to give to PromiseAny
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // resolved later
+			Promise<int> p1(1);                                              // preresolved
+			Promise<string> p2("Hello");                                     // preresolved
+			Promise<double> p3(3.3);                                         // preresolved
+
+			bool areSomeResolved = false;
+
+			PromiseAny pa({ p0, p1, p2, p3 });
+			pa.Then([&](auto state)
+				{
+					Assert::AreEqual(1, state->value<int>());
+					areSomeResolved = true;
+				});
+
+			Assert::IsTrue(areSomeResolved);
+		}
+
+		TEST_METHOD(SomePreresolved_Then_Catch)
+		{
+			// Create a few Promises to give to PromiseAny
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // never resolved
+			Promise<int> p1(1);                                              // preresolved
+			Promise<string> p2("Hello");                                     // preresolved
+			Promise<double> p3(3.3);                                         // preresolved
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			PromiseAny pa({ p0, p1, p2, p3 });
+			pa.Then([&](auto state)
+					{
+						Assert::AreEqual(1, state->value<int>());
+						nThenCalls++;
+					})
+				.Catch([&](auto state) { nCatchCalls++; });
+
+			Assert::AreEqual(1, nThenCalls);
+			Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(SomePreresolved_Then_Then)
+		{
+			// Create a few Promises to give to PromiseAny
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // never resolved
+			Promise<int> p1(1);                                              // preresolved
+			Promise<string> p2("Hello");                                     // preresolved
+			Promise<double> p3(3.3);                                         // preresolved
+
+			int nThenCalls = 0;
+
+			PromiseAny pa({ p0, p1, p2, p3 });
+			pa.Then([&](auto state)
+				{
+					Assert::AreEqual(1, state->value<int>());
+					nThenCalls++;
+				}).Then([&](auto state)
+					{
+						Assert::AreEqual(1, state->value<int>());
+						nThenCalls++;
+					});
+
+				Assert::AreEqual(2, nThenCalls);
+		}
+
+		TEST_METHOD(SomePreresolved_ThenCatch)
+		{
+			// Create a few Promises to give to PromiseAny
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // never resolved
+			Promise<int> p1(1);                                              // preresolved
+			Promise<string> p2("Hello");                                     // preresolved
+			Promise<double> p3(3.3);                                         // preresolved
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			PromiseAny pa({ p0, p1, p2, p3 });
+			pa.Then(
+				[&](auto state)
+				{
+					Assert::AreEqual(1, state->value<int>());
+					nThenCalls++;
+				},
+				[&](auto state) { nCatchCalls++; });
+
+				Assert::AreEqual(1, nThenCalls);
+				Assert::AreEqual(0, nCatchCalls);
+		}
+
+		TEST_METHOD(SomePreresolved_ThenCatch_Then)
+		{
+			// Create a few Promises to give to PromiseAny
+			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();  // never resolved
+			Promise<int> p1(1);                                              // preresolved
+			Promise<string> p2("Hello");                                     // preresolved
+			Promise<double> p3(3.3);                                         // preresolved
+
+			int nThenCalls = 0;
+			int nCatchCalls = 0;
+
+			PromiseAny pa({ p0, p1, p2, p3 });
+			pa.Then(
+				[&](auto state)
+				{
+					Assert::AreEqual(1, state->value<int>());
+					nThenCalls++;
+				},
+				[&](auto state) { nCatchCalls++; }).Then(
 				[&](auto state)
 				{
 					Assert::AreEqual(1, state->value<int>());
 					nThenCalls++;
 				});
 
-			Assert::AreEqual(0, nThenCalls);
-			Assert::AreEqual(0, nCatchCalls);
-			p1state->resolve(1);  // Resolve p1
 			Assert::AreEqual(2, nThenCalls);
 			Assert::AreEqual(0, nCatchCalls);
-		}
-
-		TEST_METHOD(NonePreresolved_Catch_Then)
-		{
-			// Create a few Promises to give to PromiseAny
-			auto [p0, p0state] = Promise<>::getUnresolvedPromiseAndState();        // never resolved
-			auto [p1, p1state] = Promise<int>::getUnresolvedPromiseAndState();     // resolved later
-			auto [p2, p2state] = Promise<string>::getUnresolvedPromiseAndState();  // never resolved
-			auto [p3, p3state] = Promise<double>::getUnresolvedPromiseAndState();  // never resolved
-
-			int nThenCalls = 0;
-			int nCatchCalls = 0;
-
-			PromiseAny pa = PromiseAny({ p0, p1, p2, p3 })
-				.Catch([&](auto ex) { nCatchCalls++; })
-				.Then([&](auto state)
-				{
-					Assert::AreEqual(1, state->value<int>());
-					nThenCalls++;
-				});
-
-				Assert::AreEqual(0, nThenCalls);
-				Assert::AreEqual(0, nCatchCalls);
-				p1state->resolve(1);  // Resolve p1
-				Assert::AreEqual(1, nThenCalls);
-				Assert::AreEqual(0, nCatchCalls);
 		}
 	};
 	//***************************************************************************************
@@ -331,7 +340,8 @@ namespace TestJSLikePromiseAny
 			auto p0 = BasePromise([](auto junk) {});  // won't resolve
 
 			bool areAnyResolved = false;
-			PromiseAny pa2 = PromiseAny({ pa1, p0 }).Then([&](shared_ptr<BasePromiseState> result)
+			PromiseAny pa2({ pa1, p0 });
+			pa2.Then([&](shared_ptr<BasePromiseState> result)
 				{
 					//// pa2 was resolved, because pa1 was resolved, becasue p2 was resolved.
 					Assert::AreEqual(std::string("Hello"), result->value<string>());
@@ -371,7 +381,7 @@ namespace TestJSLikePromiseAny
 			Promise<int> p1(1);
 			Promise<string> p2("Hello");
 			Promise<double> p3(3.3);
-			PromiseAny pa = PromiseAny({ p1, p2, p3 });  // Preresolved
+			PromiseAny pa({ p1, p2, p3 });  // Preresolved
 
 			auto result = myCoAwaitingCoroutine(pa);
 			Assert::IsTrue(result.isResolved());
@@ -384,7 +394,7 @@ namespace TestJSLikePromiseAny
 			auto [p1, p1state] = Promise<string>::getUnresolvedPromiseAndState();
 			auto [p2, p2state] = Promise<double>::getUnresolvedPromiseAndState();
 			auto p = PromiseAny({ p0, p1, p2 });
-			PromiseAny pa = PromiseAny({ p0, p1, p2 });  // Not yet resolved
+			PromiseAny pa({ p0, p1, p2 });  // Not yet resolved
 
 			auto result = myCoAwaitingCoroutine(pa);
 			Assert::IsFalse(result.isResolved());
@@ -400,7 +410,7 @@ namespace TestJSLikePromiseAny
 			auto [p0, p0state] = Promise<bool>::getUnresolvedPromiseAndState();
 			auto [p1, p1state] = Promise<string>::getUnresolvedPromiseAndState();
 			auto [p2, p2state] = Promise<double>::getUnresolvedPromiseAndState();
-			auto pa = PromiseAny({ p0, p1, p2 });
+			PromiseAny pa({ p0, p1, p2 });
 
 			auto result = myCoAwaitingCoroutineThatCatches(pa);
 
@@ -419,7 +429,7 @@ namespace TestJSLikePromiseAny
 			auto [p0, p0state] = Promise<bool>::getUnresolvedPromiseAndState();
 			auto [p1, p1state] = Promise<string>::getUnresolvedPromiseAndState();
 			auto [p2, p2state] = Promise<double>::getUnresolvedPromiseAndState();
-			auto pa = PromiseAny({ p0, p1, p2 });
+			PromiseAny pa({ p0, p1, p2 });
 
 			auto result = myCoAwaitingCoroutine(pa);
 
@@ -457,7 +467,7 @@ namespace TestJSLikePromiseAny
 			auto p1 = Promise<int>(1);
 			auto p2 = Promise<string>("Hello");
 			auto p3 = Promise<double>(3.3);
-			auto p = PromiseAny({ p1, p2, p3 });
+			PromiseAny p({ p1, p2, p3 });
 
 
 			bool wasThenCalled = false;
@@ -475,7 +485,7 @@ namespace TestJSLikePromiseAny
 			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();
 			auto [p1, p1state] = Promise<string>::getUnresolvedPromiseAndState();
 			auto [p2, p2state] = Promise<double>::getUnresolvedPromiseAndState();
-			auto p = PromiseAny({ p0, p1, p2 });
+			PromiseAny p({ p0, p1, p2 });
 
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
@@ -517,8 +527,7 @@ namespace TestJSLikePromiseAny
 			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();
 			auto [p1, p1state] = Promise<string>::getUnresolvedPromiseAndState();
 			auto [p2, p2state] = Promise<double>::getUnresolvedPromiseAndState();
-			auto p = PromiseAny({ p0, p1, p2 });
-
+			PromiseAny p({ p0, p1, p2 });
 
 			auto result = CoAwait(p);
 
@@ -533,7 +542,7 @@ namespace TestJSLikePromiseAny
 			auto [p0, p0state] = Promise<int>::getUnresolvedPromiseAndState();
 			auto [p1, p1state] = Promise<string>::getUnresolvedPromiseAndState();
 			auto [p2, p2state] = Promise<double>::getUnresolvedPromiseAndState();
-			auto p = PromiseAny({ p0, p1, p2 });
+			PromiseAny p({ p0, p1, p2 });
 
 			bool wasThenCalled = false;
 			CoReturnPromiseAny(p).Then([&](auto result)
@@ -611,8 +620,8 @@ namespace TestJSLikePromiseAny
 
 			// "Wire-up" the SUT.
 			int nCatchCalls = 0;
-			PromiseAny pa = PromiseAny({ p0, p1, p2 })
-				.Catch([&](auto ex) { nCatchCalls++; });
+			PromiseAny pa({ p0, p1, p2 });
+			pa.Catch([&](auto ex) { nCatchCalls++; });
 
 			// Reject p1.  The "Catch" Lambda should be called.
 			p1state->reject(make_exception_ptr(out_of_range("invalid string position")));
@@ -631,8 +640,8 @@ namespace TestJSLikePromiseAny
 
 			// "Wire-up" the SUT.
 			int nCatchCalls = 0;
-			PromiseAny pa = PromiseAny({ p0, p1, p2 })
-				.Catch([&](auto ex) { nCatchCalls++; })
+			PromiseAny pa({ p0, p1, p2 });
+			pa.Catch([&](auto ex) { nCatchCalls++; })
 				.Catch([&](auto ex) { nCatchCalls++; });
 
 			// Reject p1.  The "Catch" Lambda should be called.
@@ -653,8 +662,8 @@ namespace TestJSLikePromiseAny
 			// "Wire-up" the SUT.
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
-			PromiseAny pa = PromiseAny({ p0, p1, p2 })
-				.Catch([&](auto ex) { nCatchCalls++; })
+			PromiseAny pa({ p0, p1, p2 });
+			pa.Catch([&](auto ex) { nCatchCalls++; })
 				.Then([&](auto result) { nThenCalls++; });
 
 			// Reject p1.  The "Catch" Lambda should be called.
@@ -679,8 +688,8 @@ namespace TestJSLikePromiseAny
 			// "Wire-up" the SUT.
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
-			PromiseAny pa = PromiseAny({ p0, p1, p2 })
-				.Then([&](auto result) { nThenCalls++; })
+			PromiseAny pa({ p0, p1, p2 });
+			pa.Then([&](auto result) { nThenCalls++; })
 				.Catch([&](auto ex) { nCatchCalls++; });
 
 			// Reject p1.  The "Catch" Lambda should be called.
@@ -705,7 +714,8 @@ namespace TestJSLikePromiseAny
 			// "Wire-up" the SUT.
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
-			PromiseAny pa = PromiseAny({ p0, p1, p2 }).Then(
+			PromiseAny pa({ p0, p1, p2 });
+			pa.Then(
 				[&](auto result) { nThenCalls++; },
 				[&](auto ex) { nCatchCalls++; });
 
@@ -731,7 +741,8 @@ namespace TestJSLikePromiseAny
 			// "Wire-up" the SUT.
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
-			PromiseAny pa = PromiseAny({ p0, p1, p2 }).Then(
+			PromiseAny pa({ p0, p1, p2 });
+			pa.Then(
 				[&](auto result) { nThenCalls++; },
 				[&](auto ex) { nCatchCalls++; }).Catch(
 				[&](auto ex) { nCatchCalls++; });
@@ -758,7 +769,8 @@ namespace TestJSLikePromiseAny
 			// "Wire-up" the SUT.
 			int nThenCalls = 0;
 			int nCatchCalls = 0;
-			PromiseAny pa = PromiseAny({ p0, p1, p2 }).Then(
+			PromiseAny pa({ p0, p1, p2 });
+			pa.Then(
 				[&](auto result) { nThenCalls++; },
 				[&](auto ex) { nCatchCalls++; }).Then(
 				[&](auto result) { nThenCalls++; });
