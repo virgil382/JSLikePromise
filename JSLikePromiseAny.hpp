@@ -147,7 +147,7 @@ namespace JSLike {
         [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resolvedState)
         {
           thenLambda(resolvedState);
-          chainedPromiseState->resolve(resolvedState);
+          chainedPromiseState->resolve(resolvedState);  // difference vs. Promise<T>::Then()
         },
         // Catch Lambda
         [chainedPromiseState](exception_ptr ex)
@@ -173,7 +173,7 @@ namespace JSLike {
         // Then Lambda
         [chainedPromiseState](shared_ptr<BasePromiseState> resolvedState)
         {
-          chainedPromiseState->resolve(resolvedState);
+          chainedPromiseState->resolve(resolvedState);  // difference vs. Promise<T>::Catch()
         },
         // Catch Lambda
         [chainedPromiseState, catchLambda](auto ex)
@@ -199,7 +199,7 @@ namespace JSLike {
         [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resolvedState)
         {
           thenLambda(resolvedState);
-          chainedPromiseState->resolve(resolvedState);
+          chainedPromiseState->resolve(resolvedState);  // difference vs. Promise<T>::ThenCatch()
         },
         // Catch Lambda
         [chainedPromiseState, catchLambda](auto ex)
