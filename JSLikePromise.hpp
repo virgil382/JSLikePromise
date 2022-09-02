@@ -221,10 +221,15 @@ namespace JSLike {
       void return_value(Promise coreturnedPromise) {
         auto savedPromiseState = dynamic_pointer_cast<PromiseState<T>>(m_state);
         auto coreturnedPromiseState = coreturnedPromise.state();
+        weak_ptr<PromiseState<T>> weakCoreturnedPromiseState(coreturnedPromiseState);
 
         coreturnedPromiseState->Then(
-          [savedPromiseState, coreturnedPromiseState](shared_ptr<BasePromiseState> resultState)
+          [savedPromiseState, weakCoreturnedPromiseState](shared_ptr<BasePromiseState> resultState)
           {
+            auto coreturnedPromiseState = weakCoreturnedPromiseState.lock();
+            if (!coreturnedPromiseState)
+              return;  // This should never happen
+
             // coreturnedPromise got resolved, so resolve savedPromiseState
             savedPromiseState->chainResolve(coreturnedPromiseState->m_result);  // Pass the shared_ptr<T> down the chain to avoid copy/move.
           },
