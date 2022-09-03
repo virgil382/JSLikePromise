@@ -9,6 +9,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JSLikePromise", "JSLikeProm
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples_JavaScript", "Examples_JavaScript", "{16902844-F927-491C-9E60-93C617696B02}"
 	ProjectSection(SolutionItems) = preProject
+		Examples_JavaScript\differences.js = Examples_JavaScript\differences.js
 		Examples_JavaScript\examples.js = Examples_JavaScript\examples.js
 	EndProjectSection
 EndProject
