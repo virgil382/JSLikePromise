@@ -8,19 +8,21 @@
 
 using namespace JSLike;
 
+#include "example01.hpp"
+
 //================================================================================
 // Function returns pre-resolved Promise.
 // Caller with "then".
-Promise<int> ex01_function() {
-  return 1;   //  <= cool stuff occurs here
-}
-
-void example01() {
-  ex01_function().Then([](int &result)
-    {
-      std::cout << "ex01: result=" << result << "\n";
-    });
-}
+//Promise<int> ex01_function() {
+//  return 1;   //  <= cool stuff occurs here
+//}
+//
+//void example01() {
+//  ex01_function().Then([](int &result)
+//    {
+//      std::cout << "ex01: result=" << result << "\n";
+//    });
+//}
 
 //================================================================================
 // Function returns initializer-resolved Promise.

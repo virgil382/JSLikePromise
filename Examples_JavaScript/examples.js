@@ -2,18 +2,18 @@
 //================================================================================
 // Function returns implicitly-resolved Promise.
 // Caller with "then".
-function ex01_function() {
-    return Promise.resolve(1);
-}
+//function ex01_function() {
+//    return Promise.resolve(1);
+//}
 
-function example01() {
-    ex01_function().then((result) =>
-    {
-        console.log("ex01: result=" + result);
-    });
-}
+//function example01() {
+//    ex01_function().then((result) =>
+//    {
+//        console.log("ex01: result=" + result);
+//    });
+//}
 
-example01();
+//example01();
 
 //================================================================================
 // Function returns initializer-resolved Promise.

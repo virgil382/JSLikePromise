@@ -133,6 +133,9 @@
     <ClCompile Include="differences.cpp" />
     <ClCompile Include="examples.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="example01.hpp" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

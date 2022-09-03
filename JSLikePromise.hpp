@@ -116,6 +116,14 @@ namespace JSLike {
       state()->chainResolve(make_shared<T>(forward<T>(val)));
     }
 
+    static Promise resolve(T & val) {
+      return Promise(val);
+    }
+
+    static Promise resolve(T&& val) {
+      return Promise(forward<T>(val));
+    }
+
     // The state of the Promise is constructed by this Promise and it is shared with a promise_type or
     // an awaiter_type, and with a "then" Lambda to resolve/reject the Promise.
     shared_ptr<PromiseState<T>> state() {

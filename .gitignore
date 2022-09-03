@@ -3,3 +3,6 @@
 /Debug
 /Examples_C++20/Debug
 /Test/Debug
+/mdautogen/.idea
+/mdautogen/node_modules
+*.bak
