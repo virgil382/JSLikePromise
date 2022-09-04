@@ -1,136 +1,37 @@
-#include <iostream>
-#include <coroutine>
-#include <thread>
+#include <iostream>  // for cout
+#include <thread>    // for this_thread::sleep_for
+using namespace std;
 
 #include "../JSLikePromise.hpp"
 #include "../JSLikePromiseAll.hpp"
 #include "../JSLikePromiseAny.hpp"
-
 using namespace JSLike;
 
+#define main main01
 #include "example01.hpp"
+#undef main
 
-//================================================================================
-// Function returns pre-resolved Promise.
-// Caller with "then".
-//Promise<int> ex01_function() {
-//  return 1;   //  <= cool stuff occurs here
-//}
-//
-//void example01() {
-//  ex01_function().Then([](int &result)
-//    {
-//      std::cout << "ex01: result=" << result << "\n";
-//    });
-//}
+#define main main02
+#include "example02.hpp"
+#undef main
 
-//================================================================================
-// Function returns initializer-resolved Promise.
-// Caller with "then".
-Promise<int> ex02_function() {
-  return Promise<int>([](shared_ptr<PromiseState<int>> promiseState)
-    {
-      promiseState->resolve(2);
-    });
-}
+#define main main02a
+#include "example02a.hpp"
+#undef main
 
-void example02() {
-  ex02_function().Then([](int &result)
-    {
-      std::cout << "ex02: result=" << result << "\n";
-    });
-}
+#define main main03
+#include "example03.hpp"
+#undef main
 
-//================================================================================
-// Async/coroutine returns initializer-resolved Promise.
-// Caller with "then".
-Promise<int> ex02a_function() {
-  co_return co_await Promise<int>([](shared_ptr<PromiseState<int>> promiseState)
-    {
-      promiseState->resolve(2);
-    });
-}
+#define main main04
+#include "example04.hpp"
+#undef main
 
-void example02a() {
-  ex02a_function().Then([](int &result)
-    {
-      std::cout << "ex02a: result=" << result << "\n";
-    });
-}
-
-//================================================================================
-// Async/coroutine returns a implicitly-resolved Promise.
-// Caller with "then".
-Promise<int> ex03_coroutine() {
-  co_return 3;
-}
-
-void example03() {
-  ex03_coroutine().Then([](int &result)
-    {
-      std::cout << "ex03: result=" << result << "\n";
-    });
-}
-
-//================================================================================
-// Async/Coroutine awaits on a Promise before resuming.
-shared_ptr<PromiseState<int>> example04_promiseState;
-
-Promise<int> ex04_resolveAfter1Sec() {
-  return Promise<int>([](shared_ptr<PromiseState<int>> promiseState)
-    {
-      example04_promiseState = promiseState;
-    });
-}
+#define main main05
+#include "example05.hpp"
+#undef main
 
 
-Promise<int> ex04_coroutine() {
-  int result = co_await ex04_resolveAfter1Sec();
-  co_return result;
-}
-
-void example04() {
-  ex04_coroutine().Then([](int &result)
-    {
-      std::cout << "ex04: result after 1sec=" << result << "\n";
-    });
-
-  // Wait 1sec before resolving the Promise to the value 4.
-  std::this_thread::sleep_for(1000ms);
-  example04_promiseState->resolve(4);
-}
-
-//================================================================================
-// Async/Coroutine awaits on another async/coroutine that get resolved after 1sec.
-shared_ptr<PromiseState<int>> example05_promiseState;
-
-Promise<int> ex5_resolveAfter1Sec() {
-  return Promise<int>([](shared_ptr<PromiseState<int>> promiseState)
-    {
-      example05_promiseState = promiseState;
-    });
-}
-
-Promise<int> ex5_coroutine1() {
-  int result = co_await ex5_resolveAfter1Sec();
-  co_return result;
-}
-
-Promise<int> ex5_coroutine2() {
-  int result = co_await ex5_coroutine1();
-  co_return result;
-}
-
-void example05() {
-  ex5_coroutine2().Then([](int &result)
-    {
-      std::cout << "ex05: result after 1sec=" << result << "\n";
-    });
-
-  // Wait 1sec before resolving the Promise to the value 5.
-  std::this_thread::sleep_for(1000ms);
-  example05_promiseState->resolve(5);
-}
 //================================================================================
 // Use PromiseAll to wait for 3 promises to all get resolved to different value types after 1sec
 vector<shared_ptr<BasePromiseState>> example06_promiseStates;
@@ -194,12 +95,12 @@ void example07() {
 //================================================================================
 int main()
 {
-	example01();
-	example02();
-  example02a();
-  example03();
-  example04();
-  example05();
+	main01();
+	main02();
+  main02a();
+  main03();
+  main04();
+  main05();
   example06();
   example07();
 }

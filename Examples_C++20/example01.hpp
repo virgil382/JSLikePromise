@@ -3,8 +3,9 @@ Promise<int> ex01_function() {
 }
 
 void example01() {
-  ex01_function().Then([](int& result)
-    {
-      std::cout << "ex01: result=" << result << "\n";
-    });
+  ex01_function().Then([](int& result) {
+    cout << "ex01: result=" << result << "\n";
+  });
 }
+
+void main() { example01(); }

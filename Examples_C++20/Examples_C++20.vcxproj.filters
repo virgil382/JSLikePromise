@@ -26,5 +26,26 @@
     <ClInclude Include="example01.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="example02.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="example02a.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="example03.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="example04.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="example05.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="example06.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="example07.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

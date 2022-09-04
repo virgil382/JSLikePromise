@@ -135,6 +135,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="example01.hpp" />
+    <ClInclude Include="example02.hpp" />
+    <ClInclude Include="example02a.hpp" />
+    <ClInclude Include="example03.hpp" />
+    <ClInclude Include="example04.hpp" />
+    <ClInclude Include="example05.hpp" />
+    <ClInclude Include="example06.hpp" />
+    <ClInclude Include="example07.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -11,7 +11,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples_JavaScript", "Exam
 	ProjectSection(SolutionItems) = preProject
 		Examples_JavaScript\differences.js = Examples_JavaScript\differences.js
 		Examples_JavaScript\example01.js = Examples_JavaScript\example01.js
+		Examples_JavaScript\example02.js = Examples_JavaScript\example02.js
+		Examples_JavaScript\example03.js = Examples_JavaScript\example03.js
+		Examples_JavaScript\example04.js = Examples_JavaScript\example04.js
+		Examples_JavaScript\example05.js = Examples_JavaScript\example05.js
+		Examples_JavaScript\example06.js = Examples_JavaScript\example06.js
+		Examples_JavaScript\example07.js = Examples_JavaScript\example07.js
 		Examples_JavaScript\examples.js = Examples_JavaScript\examples.js
+		Examples_JavaScript\example02a.js = Examples_JavaScript\example02a.js
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples_C++20", "Examples_C++20", "{A479C9C2-CA45-47F5-ACCD-C9A43A810E6D}"
