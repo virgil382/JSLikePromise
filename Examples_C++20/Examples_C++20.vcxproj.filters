@@ -18,9 +18,6 @@
     <ClCompile Include="examples.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="differences.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="example01.hpp">
@@ -45,6 +42,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="example07.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="difference01.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

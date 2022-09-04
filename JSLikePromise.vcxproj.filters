@@ -32,4 +32,7 @@
   <ItemGroup>
     <None Include="readme.md" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="LICENSE.txt" />
+  </ItemGroup>
 </Project>

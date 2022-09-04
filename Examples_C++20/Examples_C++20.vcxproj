@@ -130,10 +130,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="differences.cpp" />
     <ClCompile Include="examples.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="difference01.hpp" />
     <ClInclude Include="example01.hpp" />
     <ClInclude Include="example02.hpp" />
     <ClInclude Include="example02a.hpp" />
