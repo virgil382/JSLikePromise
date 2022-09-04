@@ -71,6 +71,7 @@ function escapeMdCharacters(line) {
     line = replaceCharacter(line, ':', '\\:');
     line = replaceCharacter(line, '<', '\\<');
     line = replaceCharacter(line, '>', '\\>');
+    line = replaceCharacter(line, '\\[', '\\[');
     return line;
 }
 
