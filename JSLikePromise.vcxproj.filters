@@ -33,6 +33,6 @@
     <None Include="readme.md" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="LICENSE.txt" />
+    <Text Include="MIT-LICENSE.txt" />
   </ItemGroup>
 </Project>

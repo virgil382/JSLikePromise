@@ -216,7 +216,7 @@ $(SolutionDir)\mdautogen\run.bat</Command>
     <None Include="readme.md" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="LICENSE.txt" />
+    <Text Include="MIT-LICENSE.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
