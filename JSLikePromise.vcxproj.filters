@@ -9,6 +9,9 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
+    <Filter Include="docs">
+      <UniqueIdentifier>{eca77b47-f231-4d14-95ee-d5303a8294d4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -34,5 +37,11 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="MIT-LICENSE.txt" />
+    <Text Include="docs\consumer.hpp">
+      <Filter>docs</Filter>
+    </Text>
+    <Text Include="docs\producer.hpp">
+      <Filter>docs</Filter>
+    </Text>
   </ItemGroup>
 </Project>

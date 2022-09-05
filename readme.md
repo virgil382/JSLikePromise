@@ -2,11 +2,228 @@
 
 A [JavaScript Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) is an object that represents the eventual completion (or failure) of an asynchronous operation and its resulting value.
 
-JavaScript Promises and *async* functions introduced by ES6 (also known as ECMAScript-6) are arguably the best thing since the invention of threads.  JavaScript Promises help you to implement legible and maintainable single-threaded asynchronous logic (e.g. for network applications).  Such programs entirely avoid the pitfalls of threads and the overhead associated with thread pools.
+JavaScript Promises and *async* functions introduced by ES6 (also known as ECMAScript-6) are arguably the best thing since the invention of threads.  JavaScript Promises help you to implement legible and maintainable single-threaded asynchronous logic (e.g. for network applications).  Such programs entirely avoid the pitfalls of concurrency, are performant, and are generally easier to read and debug.
 
-This library, named "JS-like Promises" for brevity, enables you to write single-threaded asynchronous C+\+20 code that looks and feels like JavaScript ES6 code.  The semantics and syntax of JS-like Promises are "close enough" to those of JavaScript ES6 Promises (see the [examples](#Examples) section below), and the clarity of any code that uses it is expected to be comparable.  But because it's C++, the speed of the resulting optimized executable is **awesome!**
+This library, named "JS-like Promises" for brevity, enables you to write single-threaded asynchronous C+\+20 code that looks and feels like JavaScript ES6 code.  The semantics and syntax of JS-like Promises are "close enough" to those of JavaScript ES6 Promises (see the [examples](#Examples) section below), and the clarity of any code that uses it is expected to be comparable.  But because C++ is compiled and can be optimized, the speed of the resulting executable is **awesome!**
 
-Use this library to build a wrapper for your favorite asynchronous network IO library (e.g. ASIO) and you'll find that you can easily take your network application to the next level (well beyond just a simple chat client/server or TCP proxy) because of its readability and maintainability.
+Use this library to build a wrapper for your favorite asynchronous network IO library (e.g. ASIO) and you'll find that you can easily take your application to the next level (well beyond just a simple chat client/server or TCP proxy) because of its readability and maintainability.
+
+
+## Terminology
+
+Before diving into concepts, it is important to note that the term "promise" is one of the most overloaded terms in the domain of Software Engineering, I promise.  So if you are already familiar with another promise API, then please clear your mind of those concepts and start fresh.  For brevity, from here on, the term "Promise" is used to refer to JS-Like Promises (which are uncannily similar to ES6 JavaScript promises).  So there is ample documentation out there to complement what you read here.
+
+
+## Overview & Concepts
+
+### Promises as Single-Use Communication Channels
+
+Think of a Promise as a communication channel between a Producer (usually an asynchronous operation a.k.a. task) and a Consumer.  The channel may be used exactly once by the Producer to send to the Consumer either:
+* a notification that an event occurred (usually accompanied by a value); or
+* a notification of an exception (e.g. an error detected by the Producer) along with the exception object
+
+![Promise: High Level](docs/HighLevelPromise.png)
+
+### Collaboration
+
+The diagram below shows with finer granularity the collaboration sequence between the Consumer and the Producer via the Promise and the PromiseState, which is the object that holds the state of the Promise.  The state includes a shared_ptr to the value sent by the Producer to the Consumer, references to the callbacks, etc.
+
+Note that a Promise is just "thin veneer" around the PromiseState.  Promises can be copied, moved, and passed around efficiently.  PromiseState implements the resolve() and reject() operations that a Producer typically calls.
+
+![Sequence](docs/SequenceConsumerProducer.png)
+
+The following pseudocode elucidates the collaboration logic.  Note that it also shows how to report and handle exceptions.
+
+<!-- BEGIN_MDAUTOGEN: code_table_body('Consumer', 'Producer', '../docs/consumer.hpp', '../docs/producer.hpp') -->
+|Consumer|Producer|
+|----|----|
+|<pre>auto p = Promise\<int\>(\[this](auto promiseState) {<br>  startAsyncOperation(promiseState);<br>});<br><br>p.Then(\[](int &result) {<br>  cout \<\< "result = " \<\< result \<\< "\n";<br>});<br><br>p.Catch(\[](exception_ptr ex) {<br>  // Handle exception<br>});|<pre>void startAsyncOperation(shared_ptr\<PromiseState\<int\>\> promiseState) {<br><br>  // Start an async operation via an API named Deep Thought.<br>  deepThoughtAPI.cogitate(<br><br>    // Deep Thought calls this Lambda after it finds the answer to<br>    // Life, the Universe, and Everything.<br>    \[promiseState](error_code errorCode, int theAnswer) {<br><br>      if(errorCode) {<br>        // Deep Thought detected an error.  Notify the Consumer.<br>        promiseState-\>reject(make_exception_ptr(system_error(errorCode)));<br>      } else {<br>        // Send the answer to the Consumer.<br>        promiseState-\>resolve(theAnswer);<br>      }<br><br>    });<br>}|
+<!-- END_MDAUTOGEN -->
+
+### Chaining Promises
+
+As seen in the previous section, the Consumer registers its callbacks by calling Promise\::Then() and Promise\::Catch().  There is also a variant of Promise\::Then() that registers both callbacks at once.  Each of these operations returns a new Promise "chained" to the original one.  "Chained" means that after the Producer resolves or rejects the original Promise, the "chained" Promise also gets resolved/rejected.  The "chained" promise may be used to register another set of callbacks via Promise::Then() and Promise::Catch().
+
+## Integration with Coroutines
+
+So far, all of this may seem like a glorified callback mechanism, which arguably isn't too far from the truth.  But the true power of Promises becomes evident when they are used in conjunction with coroutines.
+
+Coroutines are essentially functions that can be suspended in the middle of execution (e.g. perhaps because they need to ```co_await``` some data that isn't yet available), and that can be resumed later (e.g. perhaps when the data is finally available).  Because coroutines can return control to the caller before they finish execution, they typically return to the caller an object via which the coroutines can later publish the result of their execution so that the caller can retrieve it.
+
+Promises fit naturally into this paradigm.  Specifically:
+* If a coroutine ```co_awaits``` on a Promise, the Promise suspends the coroutine if the Promise isn't yet resolved.  Later, when the Promise is resolved, it resumes execution of the coroutine, and returns to the coroutine the value with which the Promise was resolved.
+    ```
+    Promise<> coroutine1() {
+      Promise<int> x = taskThatReturnsAPromise();
+      int value = co_await x;  // Suspend here if x is not resolved.  Resume after x is resolved.
+      cout << "value=" << value << "\n";
+    }
+    ```
+* Alternately, if the Promise is rejected, then the Promise rethrows the exception with which it was rejected in the context of the coroutine that ```co_await```s on it, and resumes the coroutine.
+    ```
+    Promise<> coroutine1() {
+      Promise<int> x = taskThatReturnsAPromise();
+      int value;
+      try {
+        value = co_await x;  // Resume and throw if x is rejected.
+      } catch (exception &ex) {
+        cout << "ex=" << ex.what() << "\n";
+      }
+      cout << "value=" << value << "\n";
+    }
+    ```
+* Coroutines (typically) return to the caller an unresolved Promise (let's call it Y).
+    - Y gets resolved if/when the coroutine ```co_return```s a value.
+        ```
+        Promise<int> coroutine1() {
+          // The coroutine returns an unresolved Promise after it suspends execution.
+          co_await doSomethingElse();  // suspend execution here
+
+          co_return 1;                 // Resolve the returned Promise here.
+        }
+
+        int main() {
+          auto y = coroutine1();       // y is returned before the coroutine finishes execution
+        }
+        ```
+    - Y gets rejected if an exception is thrown and is left unhandled in the context of the coroutine.
+        ```
+        Promise<int> coroutine1() {
+          int i = std::string().at(1);    // throw std::out_of_range
+        }
+
+        int main() {
+          auto y = coroutine1();          // y is rejected
+        }
+        ```
+    - If the coroutine ```co_return```s another Promise (lets call it X), then Y gets chained to X.  Thus, if X gets resolved, then so does Y.  Conversely, if X gets rejected, then so does Y.
+        ```
+        Promise<int> coroutine1() {
+          // The coroutine returns an unresolved Promise after it suspends execution.
+          co_await doSomethingElse();  // suspend execution here
+
+          Promise<int> x = taskThatReturnsAPromise();  // Call another function that returns a Promise.
+          // Note that x is different than the Promise returned by the coroutine.
+
+          // This doesn't actually return x.  It chains the returned Promise to x so that if x gets
+          // resolved, then so does the returned Promise.
+          co_return x;
+        }
+
+        int main() {
+          auto y = coroutine2();  // y is chained to x.
+        }
+        ```
+
+This sort of collaboration with coroutines is powerful stuff.  You can code your application logic in a procedural way i.e. as a sequence of steps, even though some of the steps in the sequence may block/await for other tasks to complete.
+
+It is also worth pointing out that C++20 coroutines are not meant for direct use by application code.  Rather, they are meant to be used through libraries/frameworks such as this one.  And JS-like Promises provides a convenient interface to them with well-documented and time-proven semantics.
+
+
+## Nitty-Gritty Details
+
+### Resolving Promises with Lvalue and Rvalue References
+
+Valued Promises i.e. ```Promise<T>``` can be constructed/resolved from rvalue or lvalue references.  Internally, ```PromiseState<T>``` maintains a ```shared_ptr<T>``` to the resolved value.  If an rvalue reference is specified, then move/forward semantics are used (if the value type defines a move constructor).  Otherwise, the value is copied.  Here are two examples:
+
+* If you want to move-resolve a Promise, then do something like this:
+    ```
+    Promise<MoveConstructibleValueType> p([](auto promiseState) {
+      MoveConstructibleValueType v;
+      promiseState->resolve(move(v));  // Pass an rvalue reference to resolve().
+    });
+    ```
+* Otherwise, if you are happy with copy-resolve, then do something like this:
+    ```
+    Promise<CopyConstructibleValueType> p([](auto promiseState) {
+      CopyConstructibleValueType v;
+      promiseState->resolve(v);  // No move() here.  Pass an lvalue reference to resolve().
+    });
+    ```
+As a reminder, calling ```move()``` doesn't move anything.  It only casts an lvalue reference to an rvalue reference so that the appropriate variant of ```Promise<T>::resolve()``` gets called, which eventually calls the move constructor if it is defined.  Otherwise, it calls the copy constructor as a fallback.   So if you want performance, then implement [move constructors](https://docs.microsoft.com/en-us/cpp/cpp/move-constructors-and-move-assignment-operators-cpp) for the value types that you plan to use with Promises, and use ```move()``` to resolve Promises.
+
+For enhanced clarity, take a look at the implementation of the ```Promise<T>``` constructors and of the ```PromiseState<T>::resolve()``` variants in [JSLikePromise.hpp](./JSLikePromise.hpp) to see exactly what happens when you construct or resolve a Promise.
+
+
+### Obtaining the Resolved Value from a Promise
+
+After a Promise is resolved, your code can obtain an lvalue reference to the resolved value:
+* via a callback (specified by calling ```Promise::Then()```)
+    ```
+    taskThatReturnsAnIntPromise().Then([](int &v) {
+      cout << "v=" << v << "\n";
+    });
+    ```
+* or by calling ```co_await``` from a coroutine.
+    ```
+    Promise<> coroutine1() {
+      int &v(co_await taskThatReturnsAnIntPromise());
+      cout << "v=" << v << "\n";
+    }
+    ```
+
+### Resolved Value Lifecycle
+
+```PromiseState<T>``` maintains a ```shared_ptr<T>``` to the value with which the Promise was resolved.  This ```shared_ptr``` is copied and passed along the chain of Promises.  This design is  more efficient (for types other than PODs), and it interoperates with types that do not allow copying (e.g. asio\::ip\::tcp\::socket).
+
+This suggests that care must be taken because the resolved value may be destroyed when the ```PromiseState``` is destroyed (if the reference count to the value drops to 0).  Therefore, if you want the value to live beyond the ```PromiseState```, then you have a few options.  Use the one that makes most sense:
+* Move the value.
+    ```
+    Promise<> coroutineThatMovesTheValue() {
+      // Get the lvalue reference.
+      MovableType& v = co_await taskThatReturnsAMovableValueTypePromise();
+
+      // Move the resolved value into a new instance of MovableType.
+      MovableType vv(move(v));  // cast v to an rvalue to invoke the move constructor
+
+      cout << "vv=" << vv.internalValue() << "\n";
+    }
+    ```
+* Copy the value.
+    ```
+    Promise<> coroutineThatCopiesTheValue() {
+      // Get the lvalue reference.
+      CopyableType& v = co_await taskThatReturnsACopyableValueTypePromise();
+
+      // Copy the resolved value to a new instance of CopyableType.
+      CopyableType vv(v);  // use v as an lavalue to invoke the copy constructor
+
+      cout << "vv=" << vv.internalValue() << "\n";
+    }
+    ```
+* Get a ```shared_ptr``` to the value.  You will probably have to use ```enable_shared_from_this``` in your value type definition.
+    ```
+    Promise<> coroutineThatGetsASharedPointerToTheValue() {
+      // Copy the lvalue refrence to the resolved value.
+      ShareableFromThisType& v = co_await taskThatReturnsAShareableValueTypePromise();
+
+      // Get a shared_ptr to the resolved value.
+      shared_ptr<ShareableFromThisType> vv(v.shared_from_this());
+
+      cout << "vv=" << vv->internalValue() << "\n";
+    }
+    ```
+
+### Move Caveat
+
+Needless to say, be careful to not move a resolved value twice.  For example, don't do this:
+```
+Promise<MovableType> p = taskThatReturnsAMovableValueTypePromise();
+p.Then([](MovableType& v) {
+    // This Lambda will be called first.
+
+    MovableType vv(move(v));  // cast v to an rvalue to invoke the move constructor
+    cout << "vv=" << vv.internalValue() << "\n";
+
+  }).Then([](MovableType& v) {
+    // This Lambda will be called next.
+
+    MovableType vv(move(v));  // BUG: v was moved already
+    cout << "vv=" << vv.internalValue() << "\n";
+  });
+```
+
+
 
 ## Header Files
 
@@ -102,7 +319,7 @@ Note that due to the C++ requirement for type specificity, valued Promises must 
 Promise<int> p;
 ```
 
-JavaScript does not impose this constraint.  In fact, you can resolve a Promise to any value type.  However, one should hope that programs that rely on this flexibility will never be allowed to make it to production.  But each to his own.
+JavaScript does not impose this constraint.  In fact, you can resolve a JavaScript Promise to any value type.  However, one should hope that programs that rely on this flexibility are never allowed to reach production.  But each to his own...
 
 ### *coroutine*s can't co_return Promise\<void\>
 
@@ -115,6 +332,11 @@ Note that this constraint applies only to retruning ```Promise<void>```.  Return
 |----|----|
 |<pre>async function difference01_function() {<br>  // JavaScript async functions can return Promises<br>  // that resolve to void.<br>  return new Promise(<br>    (resolve, reject) =\> {<br>      resolve();<br>    });<br>}<br><br><br>function difference01() {<br>  let p = difference01_function().then((result) =\> {<br>    console.log("dif01\: resolved");<br>  });<br>}<br><br>difference01();|<pre>Promise\<\> difference01_function() {<br>  // C++20 coroutines can't return Promise\<void\>.<br>  // The code below won't compile.<br>  //co_return Promise\<\>(<br>  //  \[](auto promiseState) {<br>  //    promiseState-\>resolve();<br>  //  });<br><br>  // You can do this instead\:<br>  co_return co_await Promise\<\>(<br>    \[](auto promiseState) {<br>      promiseState-\>resolve();<br>    });<br>}<br><br>void difference01() {<br>  Promise\<\> p = difference01_function(); p.Then(\[]() {<br>    cout \<\< "dif01\: resolved\n";<br>  });<br>}<br><br>void main() { difference01(); }|
 <!-- END_MDAUTOGEN -->
+
+### Why "Then" instead of "then"?
+
+Note that "Catch" operation is so name because "catch" is already taken as a C++ keywork.  "Then" is not.  But it would have been weird to capitalize one and not the other because they are such notable complementary operations.
+
 
 ## License
 

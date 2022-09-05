@@ -23,14 +23,12 @@ namespace JSLike {
 
 
   /**
-   * A BasePromiseState, is the classifier that maintains the state of a BasePromise in
-   * the data members described below.  It also implements the related behavior described
-   * below:
+   * A BasePromiseState, is maintains the state of a BasePromise in the data members
+   * described below.  It also implements the related behavior described below:
+   * 
    *  - The flag m_isResolved indicates whether the BasePromise has been resolved or not.
-   *  - If the BasePromise is being used in the traditional way, which results in a
-   *    call to a user-supplied "Then" Lambda when the BasePromise is resolved, then the
-   *    state also includes m_thenVoidLambda, which is a pointer to the "Then" Lambda.
-   *    (Note that in the case of a BasePromise, the "Then" Lambda takes no parameters.)
+   *  - If the BasePromise is being used as a "thenable" (e.g. a "Lambda" was specified
+   *    via a call to Then()), then m_thenVoidLambda points to the Lambda.
    *  - If the BasePromise is being co_awaited on by a coroutine, then the BasePromise
    *    state also includes the coroutine handle m_h<>, which the resolve() method uses to
    *    resume the coroutine.
@@ -40,7 +38,7 @@ namespace JSLike {
    *    BasePromise::awaiter_type), then the exception_ptr is rethrown after the
    *    coroutine resumes execution (by See BasePromise::awaiter_type::await_resume()).
    *    This allows the coroutine to handle the exception if it wants.
-   *  - But if the BasePromise is being used in the traditional way, which results in a
+   *  - But if the BasePromise is being used as a "thenable", which results in a
    *    call to a user-supplied "Catch" Lambda when the BasePromise is rejected, then the
    *    state also includes a pointer m_catchLambda to the "Catch" Lambda.  When the
    *    BasePromise is rejected, the "Catch" Lambda is called, and the exception_ptr is
