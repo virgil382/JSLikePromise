@@ -137,7 +137,7 @@ namespace TestReadmeCodeSnippets
 			CopyableType(int i) : v(i) { }
 
 			CopyableType(const CopyableType& other) { v = other.v; };  // copy constructor
-			//CopyableType(CopyableType&& other) = default;
+			CopyableType(CopyableType&& other) = delete;
 			CopyableType& operator=(const CopyableType&) = delete;
 			CopyableType& operator=(CopyableType&&) = delete;
 
@@ -164,8 +164,7 @@ namespace TestReadmeCodeSnippets
 		}
 
 		Promise<CopyableType> taskThatReturnsACopyableValueTypePromise() {
-			CopyableType v(1);
-			co_return v;
+			co_return *(new CopyableType(1));
 		}
 
 		Promise<ShareableFromThisType> taskThatReturnsAShareableValueTypePromise() {
