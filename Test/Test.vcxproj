@@ -170,13 +170,9 @@
     <ClCompile Include="TestJsLikePromiseAny.cpp" />
     <ClCompile Include="TestJsLikeVoidPromise.cpp" />
     <ClCompile Include="TestReadmeCodeSnippets.cpp" />
-    <ClCompile Include="Timer.cpp" />
-    <ClCompile Include="TimerExtent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TranscriptionCounter.hpp" />
-    <ClInclude Include="Timer.h" />
-    <ClInclude Include="TimerExtent.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

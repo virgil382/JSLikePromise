@@ -7,7 +7,6 @@
 #include <vector>
 #include <utility>  // for std::pair
 
-#include "TimerExtent.h"
 #include "../JSLikePromise.hpp"
 #include "../JSLikePromiseAll.hpp"
 
