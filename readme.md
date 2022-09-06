@@ -1,3 +1,4 @@
+![JavaScript-like Promises for C++20](docs/Logo.png)
 # JavaScript-like Promises for C++20
 
 A [JavaScript Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) is an object that represents the eventual completion (or failure) of an asynchronous operation and its resulting value.
@@ -332,6 +333,13 @@ Note that this constraint applies only to retruning ```Promise<void>```.  Return
 |----|----|
 |<pre>async function difference01_function() {<br>  // JavaScript async functions can return Promises<br>  // that resolve to void.<br>  return new Promise(<br>    (resolve, reject) =\> {<br>      resolve();<br>    });<br>}<br><br><br>function difference01() {<br>  let p = difference01_function().then((result) =\> {<br>    console.log("dif01\: resolved");<br>  });<br>}<br><br>difference01();|<pre>Promise\<\> difference01_function() {<br>  // C++20 coroutines can't return Promise\<void\>.<br>  // The code below won't compile.<br>  //co_return Promise\<\>(<br>  //  \[](auto promiseState) {<br>  //    promiseState-\>resolve();<br>  //  });<br><br>  // You can do this instead\:<br>  co_return co_await Promise\<\>(<br>    \[](auto promiseState) {<br>      promiseState-\>resolve();<br>    });<br>}<br><br>void difference01() {<br>  Promise\<\> p = difference01_function(); p.Then(\[]() {<br>    cout \<\< "dif01\: resolved\n";<br>  });<br>}<br><br>void main() { difference01(); }|
 <!-- END_MDAUTOGEN -->
+
+### No Split Promise Chains
+
+JavaScript Promises allow multiple calls to ```then()``` on the same Promise object.  This effectively lets you create a split/bifurcation in the chain of Promises becasue each call returns a new chained Promise on which you can call ```then()```, and so on...  In my experience this feature seems superfluous.  I never used it, and I probably never will.
+
+JS-like Promises don't support this feature.  If you call ```Then()``` multiple times on the same Promise, then the last call wins, and the previous registered callbacks are lost.  This limitation can be easily remedied by enhancing [BasePromiseState](JSLikeBasePromise.hpp).  It could be done with only a minor hit to performance.  If you need this feature, then be my guest.
+
 
 ### Why "Then" instead of "then"?
 

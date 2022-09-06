@@ -36,14 +36,14 @@ namespace JSLike {
    *    an exception_ptr named m_eptr whose value is specified via a call to reject().
    *    If the BasePromise is being awaited on by a coroutine (e.g. via a
    *    BasePromise::awaiter_type), then the exception_ptr is rethrown after the
-   *    coroutine resumes execution (by See BasePromise::awaiter_type::await_resume()).
+   *    coroutine resumes execution (see BasePromise::awaiter_type::await_resume()).
    *    This allows the coroutine to handle the exception if it wants.
    *  - But if the BasePromise is being used as a "thenable", which results in a
    *    call to a user-supplied "Catch" Lambda when the BasePromise is rejected, then the
    *    state also includes a pointer m_catchLambda to the "Catch" Lambda.  When the
    *    BasePromise is rejected, the "Catch" Lambda is called, and the exception_ptr is
-   *    passed to it as an argument.  The "Catch" Lambda may rethrow, catch, and handle
-   *    it if it wants.
+   *    passed to it as an argument.  The "Catch" Lambda may rethrow the exception_ptr,
+   *    catch the resulting exception, and handle it if it wants.
    */
   struct BasePromiseState : public enable_shared_from_this<BasePromiseState> {
     BasePromiseState() : m_isResolved(false) {}
