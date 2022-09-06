@@ -1,9 +1,13 @@
 *.vcxproj.user
 /.vs
 /Debug
+/Release
 /Examples_C++20/Debug
+/Examples_C++20/Release
 /Test/Debug
+/Test/Release
 /mdautogen/.idea
 /mdautogen/node_modules
 *.bak
 /docs/Debug
+/docs/Release
