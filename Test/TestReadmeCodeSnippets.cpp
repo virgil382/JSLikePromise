@@ -108,7 +108,7 @@ namespace TestReadmeCodeSnippets
 				});
 		}
 
-		TEST_METHOD(GetValueVia_co_return)
+		TEST_METHOD(GetValueVia_co_await)
 		{
 			coroutine1();
 		}
@@ -137,7 +137,7 @@ namespace TestReadmeCodeSnippets
 			CopyableType(int i) : v(i) { }
 
 			CopyableType(const CopyableType& other) { v = other.v; };  // copy constructor
-			CopyableType(CopyableType&& other) = delete;
+			//CopyableType(CopyableType&& other) = delete;  // Don't delete this.  It breaks e.g. "co_return CopyableType(1);"
 			CopyableType& operator=(const CopyableType&) = delete;
 			CopyableType& operator=(CopyableType&&) = delete;
 
@@ -164,7 +164,7 @@ namespace TestReadmeCodeSnippets
 		}
 
 		Promise<CopyableType> taskThatReturnsACopyableValueTypePromise() {
-			co_return *(new CopyableType(1));
+			co_return CopyableType(1);
 		}
 
 		Promise<ShareableFromThisType> taskThatReturnsAShareableValueTypePromise() {
