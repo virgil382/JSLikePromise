@@ -219,13 +219,13 @@ namespace JSLike {
         return p;
       }
 
-      // Called when a coroutine calls co_return with T.
+      // Called when a coroutine calls e.g. "co_return i;" where i is a T.
       void return_value(const T& val) {
         auto castState = dynamic_pointer_cast<PromiseState<T>>(m_state);
         castState->resolve(const_cast<T&>(val));
       }
 
-      // Called when a coroutine calls co_return with T.
+      // Called when a coroutine calls co_return T in pretty much all other cases.
       void return_value(T &&val) {
         auto castState = dynamic_pointer_cast<PromiseState<T>>(m_state);
         castState->resolve(forward<T>(val));
