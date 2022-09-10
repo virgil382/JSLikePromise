@@ -57,11 +57,11 @@ namespace JSLike {
     }
 
     // Override BasePromiseState::Then()
-    void Then(function<void(shared_ptr<BasePromiseState>)> thenLambda) override {
-      m_thenLambda = thenLambda;
+    void Then(BasePromise::ThenCallback thenCallback) override {
+      m_thenCallback = thenCallback;
 
       if (m_isResolved) {
-        thenLambda(value()); // Difference vs. BasePromiseState
+        thenCallback(value()); // Difference vs. BasePromiseState
       }
     }
 
@@ -133,7 +133,7 @@ namespace JSLike {
       return castState;
     }
 
-    PromiseAny Then(function<void(shared_ptr<BasePromiseState>)> thenLambda) {
+    PromiseAny Then(ThenCallback thenCallback) {
       PromiseAny chainedPromise(false);  // The new "chained" Promise that we'll return to the caller.
       auto chainedPromiseState = chainedPromise.state();
 
@@ -144,9 +144,9 @@ namespace JSLike {
       auto currentState = state();
       currentState->BasePromiseState::Then(
         // Then Lambda
-        [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resolvedState)
+        [chainedPromiseState, thenCallback](shared_ptr<BasePromiseState> resolvedState)
         {
-          thenLambda(resolvedState);
+          thenCallback(resolvedState);
           chainedPromiseState->resolve(resolvedState);  // difference vs. Promise<T>::Then()
         },
         // Catch Lambda
@@ -159,7 +159,7 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    PromiseAny Catch(function<void(exception_ptr)> catchLambda) {
+    PromiseAny Catch(CatchCallback catchCallback) {
       PromiseAny chainedPromise(false);
       auto chainedPromiseState = chainedPromise.state();
 
@@ -176,16 +176,16 @@ namespace JSLike {
           chainedPromiseState->resolve(resolvedState);  // difference vs. Promise<T>::Catch()
         },
         // Catch Lambda
-        [chainedPromiseState, catchLambda](auto ex)
+        [chainedPromiseState, catchCallback](auto ex)
         {
-          catchLambda(ex);
+          catchCallback(ex);
           chainedPromiseState->reject(ex);
         });
 
       return chainedPromise;
     }
 
-    PromiseAny Then(function<void(shared_ptr<BasePromiseState>)> thenLambda, function<void(exception_ptr)> catchLambda) {
+    PromiseAny Then(ThenCallback thenCallback, CatchCallback catchCallback) {
       PromiseAny chainedPromise(false);  // The new "chained" Promise that we'll return to the caller.
       auto chainedPromiseState = chainedPromise.state();
 
@@ -196,15 +196,15 @@ namespace JSLike {
       auto currentState = state();
       currentState->BasePromiseState::Then(
         // Then Lambda
-        [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resolvedState)
+        [chainedPromiseState, thenCallback](shared_ptr<BasePromiseState> resolvedState)
         {
-          thenLambda(resolvedState);
+          thenCallback(resolvedState);
           chainedPromiseState->resolve(resolvedState);  // difference vs. Promise<T>::ThenCatch()
         },
         // Catch Lambda
-        [chainedPromiseState, catchLambda](auto ex)
+        [chainedPromiseState, catchCallback](auto ex)
         {
-          catchLambda(ex);
+          catchCallback(ex);
           chainedPromiseState->reject(ex);
         });
 

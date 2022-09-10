@@ -147,21 +147,21 @@ namespace JSLike {
      * after the Promise is resolved.  This variant of "Then" expects a Lambda whose parameter
      * is a regular reference to the resolved value (stored in the Promise state).
      * 
-     * @param thenLambda A function to be called after the Promise is resolved.
+     * @param thenCallback A function to be called after the Promise is resolved.
      * @return Another Promise<T> "chained" to this one that will be resolved when this Promise<T> is
      *         resolved.
      */
-    Promise Then(ThenCallback thenLambda) {
+    Promise Then(ThenCallback thenCallback) {
       Promise chainedPromise;
       shared_ptr<PromiseState<T>> chainedPromiseState = chainedPromise.state();
 
       auto thisPromiseState = state();
       thisPromiseState->Then(
-        [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
+        [chainedPromiseState, thenCallback](shared_ptr<BasePromiseState> resultState)
         {
           auto castState = dynamic_pointer_cast<PromiseState<T>>(resultState);
 
-          thenLambda(castState->value());
+          thenCallback(castState->value());
           chainedPromiseState->chainResolve(castState->m_result);  // Pass the shared_ptr<T> down the chain to avoid copy/move.
         },
         [chainedPromiseState](auto ex)
@@ -172,7 +172,7 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    Promise Catch(CatchCallback catchLambda) {
+    Promise Catch(CatchCallback catchCallback) {
       Promise chainedPromise;
       auto chainedPromiseState = chainedPromise.state();
       auto thisPromiseState = state();
@@ -182,30 +182,30 @@ namespace JSLike {
           auto castState = dynamic_pointer_cast<PromiseState<T>>(resultState);
           chainedPromiseState->chainResolve(castState->m_result);  // Pass the shared_ptr<T> down the chain to avoid copy/move.
         },
-        [chainedPromiseState, catchLambda](auto ex)
+        [chainedPromiseState, catchCallback](auto ex)
         {
-          catchLambda(ex);
+          catchCallback(ex);
           chainedPromiseState->reject(ex);
         });
 
       return chainedPromise;
     }
 
-    Promise Then(ThenCallback thenLambda, CatchCallback catchLambda) {
+    Promise Then(ThenCallback thenCallback, CatchCallback catchCallback) {
       Promise chainedPromise;
       shared_ptr<PromiseState<T>> chainedPromiseState = chainedPromise.state();
 
       auto thisPromiseState = state();
       thisPromiseState->Then(
-        [chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
+        [chainedPromiseState, thenCallback](shared_ptr<BasePromiseState> resultState)
         {
           auto castState = dynamic_pointer_cast<PromiseState<T>>(resultState);
-          thenLambda(castState->value());
+          thenCallback(castState->value());
           chainedPromiseState->chainResolve(castState->m_result);  // Pass the shared_ptr<T> down the chain to avoid copy/move.
         },
-        [chainedPromiseState, catchLambda](auto ex)
+        [chainedPromiseState, catchCallback](auto ex)
         {
-          catchLambda(ex);
+          catchCallback(ex);
           chainedPromiseState->reject(ex);
         });
 
@@ -342,14 +342,14 @@ namespace JSLike {
       }
     }
 
-    Promise Then(ThenCallback thenLambda) {
+    Promise Then(ThenCallback thenCallback) {
       Promise chainedPromise(false);
       auto chainedPromiseState = chainedPromise.state();
 
       shared_ptr<PromiseState<>> thisPromiseState = state();
-      thisPromiseState->Then([chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
+      thisPromiseState->Then([chainedPromiseState, thenCallback](shared_ptr<BasePromiseState> resultState)
         {
-          thenLambda();
+          thenCallback();
           chainedPromiseState->resolve();
         },
         [chainedPromiseState](auto ex)
@@ -360,7 +360,7 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    Promise Catch(CatchCallback catchLambda) {
+    Promise Catch(CatchCallback catchCallback) {
       Promise chainedPromise(false);
       auto chainedPromiseState = chainedPromise.state();
       auto thisPromiseState = state();
@@ -369,28 +369,28 @@ namespace JSLike {
         {
           chainedPromiseState->resolve();
         },
-        [chainedPromiseState, catchLambda](auto ex)
+        [chainedPromiseState, catchCallback](auto ex)
         {
-          catchLambda(ex);
+          catchCallback(ex);
           chainedPromiseState->reject(ex);
         });
 
       return chainedPromise;
     }
 
-    Promise Then(ThenCallback thenLambda, CatchCallback catchLambda) {
+    Promise Then(ThenCallback thenCallback, CatchCallback catchCallback) {
       Promise chainedPromise(false);
       auto chainedPromiseState = chainedPromise.state();
 
       shared_ptr<PromiseState<>> thisPromiseState = state();
-      thisPromiseState->Then([chainedPromiseState, thenLambda](shared_ptr<BasePromiseState> resultState)
+      thisPromiseState->Then([chainedPromiseState, thenCallback](shared_ptr<BasePromiseState> resultState)
         {
-          thenLambda();
+          thenCallback();
           chainedPromiseState->resolve();
         },
-        [chainedPromiseState, catchLambda](auto ex)
+        [chainedPromiseState, catchCallback](auto ex)
         {
-          catchLambda(ex);
+          catchCallback(ex);
           chainedPromiseState->reject(ex);
         });
 

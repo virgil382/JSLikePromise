@@ -40,7 +40,7 @@ namespace JSLike {
    *    This allows the coroutine to handle the exception if it wants.
    *  - But if the BasePromise is being used as a "thenable", which results in a
    *    call to a user-supplied "Catch" Lambda when the BasePromise is rejected, then the
-   *    state also includes a pointer m_catchLambda to the "Catch" Lambda.  When the
+   *    state also includes a pointer m_catchCallback to the "Catch" Lambda.  When the
    *    BasePromise is rejected, the "Catch" Lambda is called, and the exception_ptr is
    *    passed to it as an argument.  The "Catch" Lambda may rethrow the exception_ptr,
    *    catch the resulting exception, and handle it if it wants.
@@ -73,8 +73,8 @@ namespace JSLike {
       if (m_h.address() != nullptr) {
         m_h();
       }
-      else if (m_thenLambda) {
-        m_thenLambda(state);
+      else if (m_thenCallback) {
+        m_thenCallback(state);
       }
     }
 
@@ -174,11 +174,11 @@ namespace JSLike {
         // will throw the specified exception.
         m_h();
       }
-      else if (m_catchLambda) {
+      else if (m_catchCallback) {
         // This code executes if a regular function (or a coroutine) references a BasePromise
         // that references this BasePromiseState.
         // Invoke the Lambda specified via BasePromise::Catch(). 
-        m_catchLambda(eptr);
+        m_catchCallback(eptr);
       }
     }
 
@@ -201,34 +201,34 @@ namespace JSLike {
     friend struct PromiseAnyState;
     friend struct PromiseAny;
 
-    virtual void Then(ThenCallback thenLambda) {
-      m_thenLambda = thenLambda;
+    virtual void Then(ThenCallback thenCallback) {
+      m_thenCallback = thenCallback;
 
       if (m_isResolved) {
-        thenLambda(shared_from_this());
+        thenCallback(shared_from_this());
       }
     }
 
-    void Catch(CatchCallback catchLambda) {
-      m_catchLambda = catchLambda;
+    void Catch(CatchCallback catchCallback) {
+      m_catchCallback = catchCallback;
 
       if (m_eptr) {
-        catchLambda(m_eptr);
+        catchCallback(m_eptr);
       }
     }
 
     // Why beat around the bush.  Do both at the same time.
-    void Then(ThenCallback thenLambda, CatchCallback catchLambda) {
-      Then(thenLambda);
-      Catch(catchLambda);
+    void Then(ThenCallback thenCallback, CatchCallback catchCallback) {
+      Then(thenCallback);
+      Catch(catchCallback);
     }
 
-    ThenCallback                m_thenLambda;
+    ThenCallback                m_thenCallback;
 
     mutable coroutine_handle<>  m_h;
     bool                        m_isResolved;
 
-    CatchCallback               m_catchLambda;
+    CatchCallback               m_catchCallback;
     exception_ptr               m_eptr;
   };
 
@@ -272,12 +272,12 @@ namespace JSLike {
       return state()->isRejected();
     }
 
-    BasePromise Then(ThenCallback thenLambda) {
+    BasePromise Then(ThenCallback thenCallback) {
       BasePromise chainedPromise;
       auto chainedPromiseState = chainedPromise.state();
-      state()->Then([chainedPromiseState, thenLambda](auto resolvedState)
+      state()->Then([chainedPromiseState, thenCallback](auto resolvedState)
         {
-          thenLambda(resolvedState);
+          thenCallback(resolvedState);
           chainedPromiseState->resolve(resolvedState);
         });
 
@@ -290,32 +290,32 @@ namespace JSLike {
      * this BasePromise.  The Lambda is saved in the BasePromiseState, so it exists for as long as the
      * VoidePromiseState exists.
      *
-     * @param catchLambda A function to be called after the BasePromise is rejected.
+     * @param catchCallback A function to be called after the BasePromise is rejected.
      * @return This BasePromise (for call chaining).
      */
-    BasePromise Catch(CatchCallback catchLambda) {
+    BasePromise Catch(CatchCallback catchCallback) {
       BasePromise chainedPromise;
       auto chainedPromiseState = chainedPromise.state();
-      state()->Catch([chainedPromiseState, catchLambda](auto ex)
+      state()->Catch([chainedPromiseState, catchCallback](auto ex)
         {
-          catchLambda(ex);
+          catchCallback(ex);
           chainedPromiseState->reject(ex);
         });
 
       return chainedPromise;
     }
 
-    BasePromise Then(ThenCallback thenLambda, CatchCallback catchLambda) {
+    BasePromise Then(ThenCallback thenCallback, CatchCallback catchCallback) {
       BasePromise chainedPromise;
       auto chainedPromiseState = chainedPromise.state();
-      state()->Then([chainedPromiseState, thenLambda](auto resolvedState)
+      state()->Then([chainedPromiseState, thenCallback](auto resolvedState)
         {
-          thenLambda(resolvedState);
+          thenCallback(resolvedState);
           chainedPromiseState->resolve(resolvedState);
         },
-        [chainedPromiseState, catchLambda](auto ex)
+        [chainedPromiseState, catchCallback](auto ex)
         {
-          catchLambda(ex);
+          catchCallback(ex);
           chainedPromiseState->reject(ex);
         });
 
