@@ -46,6 +46,9 @@ namespace JSLike {
    *    catch the resulting exception, and handle it if it wants.
    */
   struct BasePromiseState : public enable_shared_from_this<BasePromiseState> {
+    typedef function<void(shared_ptr<BasePromiseState>)> ThenCallback;
+    typedef function<void(exception_ptr)>                CatchCallback;
+
     BasePromiseState() : m_isResolved(false) {}
 
     // Don't allow copies of any kind.  Always use std::shared_ptr to instances of this type.
@@ -85,7 +88,7 @@ namespace JSLike {
 
     template<typename T>
     bool isValueOfType() {
-      JSLike::PromiseState<T>* castState = dynamic_cast<JSLike::PromiseState<T> *>(this);
+      PromiseState<T>* castState = dynamic_cast<PromiseState<T> *>(this);
       return (castState != nullptr);
     }
 
@@ -99,7 +102,7 @@ namespace JSLike {
      */
     template<typename T>
     T &value() {
-      JSLike::PromiseState<T>* castState = dynamic_cast<JSLike::PromiseState<T> *>(this);
+      PromiseState<T>* castState = dynamic_cast<PromiseState<T> *>(this);
       if (!castState) {
         string err("bad cast from BasePromiseState to PromiseState<");
         err += typeid(T).name();
@@ -112,7 +115,7 @@ namespace JSLike {
     // TODO: Add UT that tests PreresolvedCopy
     template<typename T>
     void resolve(T& value) {
-      JSLike::PromiseState<T>* castState = dynamic_cast<JSLike::PromiseState<T> *>(this);
+      PromiseState<T>* castState = dynamic_cast<PromiseState<T> *>(this);
       if (!castState) {
         string err("bad cast from BasePromiseState to PromiseState<");
         err += typeid(T).name();
@@ -132,7 +135,7 @@ namespace JSLike {
      */
     template<typename T>
     void resolve(T && value) {
-      JSLike::PromiseState<T>* castState = dynamic_cast<JSLike::PromiseState<T> *>(this);
+      PromiseState<T>* castState = dynamic_cast<PromiseState<T> *>(this);
       if (!castState) {
         string err("bad cast from BasePromiseState to PromiseState<");
         err += typeid(T).name();
@@ -198,7 +201,7 @@ namespace JSLike {
     friend struct PromiseAnyState;
     friend struct PromiseAny;
 
-    virtual void Then(function<void(shared_ptr<BasePromiseState>)> thenLambda) {
+    virtual void Then(ThenCallback thenLambda) {
       m_thenLambda = thenLambda;
 
       if (m_isResolved) {
@@ -206,7 +209,7 @@ namespace JSLike {
       }
     }
 
-    void Catch(function<void(exception_ptr)> catchLambda) {
+    void Catch(CatchCallback catchLambda) {
       m_catchLambda = catchLambda;
 
       if (m_eptr) {
@@ -215,18 +218,18 @@ namespace JSLike {
     }
 
     // Why beat around the bush.  Do both at the same time.
-    void Then(function<void(shared_ptr<BasePromiseState>)> thenLambda, function<void(exception_ptr)> catchLambda) {
+    void Then(ThenCallback thenLambda, CatchCallback catchLambda) {
       Then(thenLambda);
       Catch(catchLambda);
     }
 
-    function<void(shared_ptr<BasePromiseState>)>    m_thenLambda;
+    ThenCallback                m_thenLambda;
 
-    mutable coroutine_handle<>                           m_h;
-    bool                                                 m_isResolved;
+    mutable coroutine_handle<>  m_h;
+    bool                        m_isResolved;
 
-    function<void(exception_ptr)>              m_catchLambda;
-    exception_ptr                                   m_eptr;
+    CatchCallback               m_catchLambda;
+    exception_ptr               m_eptr;
   };
 
 
@@ -244,8 +247,11 @@ namespace JSLike {
   protected:
     BasePromise() = default;
   public:
+    typedef function<void(shared_ptr<BasePromiseState>)> TaskInitializer;
+    typedef BasePromiseState::ThenCallback               ThenCallback;
+    typedef BasePromiseState::CatchCallback              CatchCallback;
 
-    BasePromise(function<void(shared_ptr<BasePromiseState>)> initializer)
+    BasePromise(TaskInitializer initializer)
     {
       initializer(state());
     }
@@ -266,7 +272,7 @@ namespace JSLike {
       return state()->isRejected();
     }
 
-    BasePromise Then(function<void(shared_ptr<BasePromiseState>)> thenLambda) {
+    BasePromise Then(ThenCallback thenLambda) {
       BasePromise chainedPromise;
       auto chainedPromiseState = chainedPromise.state();
       state()->Then([chainedPromiseState, thenLambda](auto resolvedState)
@@ -287,7 +293,7 @@ namespace JSLike {
      * @param catchLambda A function to be called after the BasePromise is rejected.
      * @return This BasePromise (for call chaining).
      */
-    BasePromise Catch(function<void(exception_ptr)> catchLambda) {
+    BasePromise Catch(CatchCallback catchLambda) {
       BasePromise chainedPromise;
       auto chainedPromiseState = chainedPromise.state();
       state()->Catch([chainedPromiseState, catchLambda](auto ex)
@@ -299,7 +305,7 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    BasePromise Then(function<void(shared_ptr<BasePromiseState>)> thenLambda, function<void(exception_ptr)> catchLambda) {
+    BasePromise Then(ThenCallback thenLambda, CatchCallback catchLambda) {
       BasePromise chainedPromise;
       auto chainedPromiseState = chainedPromise.state();
       state()->Then([chainedPromiseState, thenLambda](auto resolvedState)
@@ -356,7 +362,7 @@ namespace JSLike {
       awaiter_type_base(shared_ptr<BasePromiseState> state) : m_state(state) {}
 
       /**
-       * Answer the quest of whether or not the coroutin calling co_await should suspend.
+       * Answer the question of whether or not the coroutin calling co_await should suspend.
        * This method is called as an optimization in case the coroutine execution should NOT
        * be suspended.
        *

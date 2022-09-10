@@ -19,10 +19,10 @@ namespace JSLike {
   struct PromiseAny;
   struct PromiseAnyState;
 
-
   template<typename T=void>
   struct PromiseState : public BasePromiseState {
     typedef shared_ptr<PromiseState<T>> ptr;
+    typedef function<void(T&)> ThenCallback;
 
     PromiseState() = default;
 
@@ -71,6 +71,8 @@ namespace JSLike {
 
   template<>
   struct PromiseState<void> : public BasePromiseState {
+    typedef function<void()> ThenCallback;
+
     PromiseState() : BasePromiseState() {}
 
     // Don't allow copies of any kind.  Always use shared_ptr to instances of this type.
@@ -88,7 +90,10 @@ namespace JSLike {
     Promise() = default;
 
   public:
-    Promise(function<void(shared_ptr<PromiseState<T>>)> initializer)
+    typedef function<void(shared_ptr<PromiseState<T>>)> TaskInitializer;
+    typedef PromiseState<T>::ThenCallback ThenCallback;
+
+    Promise(TaskInitializer initializer)
     {
       auto s = state();
       try {
@@ -146,7 +151,7 @@ namespace JSLike {
      * @return Another Promise<T> "chained" to this one that will be resolved when this Promise<T> is
      *         resolved.
      */
-    Promise Then(function<void(T &)> thenLambda) {
+    Promise Then(ThenCallback thenLambda) {
       Promise chainedPromise;
       shared_ptr<PromiseState<T>> chainedPromiseState = chainedPromise.state();
 
@@ -167,7 +172,7 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    Promise Catch(function<void(exception_ptr)> catchLambda) {
+    Promise Catch(CatchCallback catchLambda) {
       Promise chainedPromise;
       auto chainedPromiseState = chainedPromise.state();
       auto thisPromiseState = state();
@@ -186,7 +191,7 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    Promise Then(function<void(T&)> thenLambda, function<void(exception_ptr)> catchLambda) {
+    Promise Then(ThenCallback thenLambda, CatchCallback catchLambda) {
       Promise chainedPromise;
       shared_ptr<PromiseState<T>> chainedPromiseState = chainedPromise.state();
 
@@ -319,11 +324,14 @@ namespace JSLike {
         state()->resolve();
     }
   public:
+    typedef function<void(shared_ptr<PromiseState<>>)> TaskInitializer;
+    typedef PromiseState<>::ThenCallback               ThenCallback;
+
     Promise() {
       state()->resolve();
     }
 
-    Promise(function<void(shared_ptr<PromiseState<>>)> initializer)
+    Promise(TaskInitializer initializer)
     {
       auto s = state();
       try {
@@ -334,7 +342,7 @@ namespace JSLike {
       }
     }
 
-    Promise Then(function<void()> thenLambda) {
+    Promise Then(ThenCallback thenLambda) {
       Promise chainedPromise(false);
       auto chainedPromiseState = chainedPromise.state();
 
@@ -352,7 +360,7 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    Promise Catch(function<void(exception_ptr)> catchLambda) {
+    Promise Catch(CatchCallback catchLambda) {
       Promise chainedPromise(false);
       auto chainedPromiseState = chainedPromise.state();
       auto thisPromiseState = state();
@@ -370,7 +378,7 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    Promise Then(function<void()> thenLambda, function<void(exception_ptr)> catchLambda) {
+    Promise Then(ThenCallback thenLambda, CatchCallback catchLambda) {
       Promise chainedPromise(false);
       auto chainedPromiseState = chainedPromise.state();
 
