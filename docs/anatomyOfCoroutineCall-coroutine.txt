@@ -1,0 +1,7 @@
+Promise<int> myCoroutine() {
+  // We'll cover what happens during co_await in a separate section
+  co_await doSomethingElse();
+
+  // See step (7) in the diagram.
+  co_return 5;
+}

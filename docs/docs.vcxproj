@@ -183,6 +183,8 @@ $(SolutionDir)\mdautogen\run.bat</Command>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <Text Include="anatomyOfCoroutineCall-caller.txt" />
+    <Text Include="anatomyOfCoroutineCall-coroutine.txt" />
     <Text Include="consumer.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -190,6 +192,14 @@ $(SolutionDir)\mdautogen\run.bat</Command>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\readme.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="AnatomyOfCoAwaitCall.png" />
+    <Image Include="AnatomyOfCoroutineCall.png" />
+    <Image Include="ChainedPromises.png" />
+    <Image Include="CollaborationExplicitResolve.png" />
+    <Image Include="HighLevelPromise.png" />
+    <Image Include="Logo.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,0 +1,11 @@
+...
+
+// See steps (1-5) in the diagram.
+Promise<int> p = myCoroutine();
+
+// See step (6) in the diagram.
+p.Then([](int &result) {
+  cout << "promise was resolved with " << result << "\n";
+});
+
+...

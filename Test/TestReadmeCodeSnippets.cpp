@@ -48,8 +48,8 @@ namespace TestReadmeCodeSnippets
 
 		Promise<> coroutine1() {
 			Promise<int> x = taskThatReturnsAPromise();
-			int value = co_await x;  // Suspend here if x is not resolved.  Resume after x is resolved.
-			cout << "value=" << value << "\n";
+			int result = co_await x;  // Suspend here if x is not resolved.  Resume after x is resolved.
+			cout << "result=" << result << "\n";
 		}
 
 	public:
@@ -71,14 +71,14 @@ namespace TestReadmeCodeSnippets
 
 		Promise<> coroutine1() {
 			Promise<int> x = taskThatReturnsAPromise();
-			int value;
+			int result;
 			try {
-				value = co_await x;  // Resume and throw if x is rejected.
+				result = co_await x;  // Resume and throw if x is rejected.
 			}
 			catch (exception& ex) {
 				cout << "ex=" << ex.what() << "\n";
 			}
-			cout << "value=" << value << "\n";
+			cout << "result=" << result << "\n";
 		}
 
 	public:
@@ -96,15 +96,15 @@ namespace TestReadmeCodeSnippets
 		}
 
 		Promise<> coroutine1() {
-			int& v = co_await taskThatReturnsAnIntPromise();
-			cout << "v=" << v << "\n";
+			int& result = co_await taskThatReturnsAnIntPromise();
+			cout << "result=" << result << "\n";
 		}
 
 	public:
 		TEST_METHOD(GetValueVia_Then)
 		{
-			taskThatReturnsAnIntPromise().Then([](int& v) {
-				cout << "v=" << v << "\n";
+			taskThatReturnsAnIntPromise().Then([](int& result) {
+				cout << "result=" << result << "\n";
 				});
 		}
 
@@ -159,46 +159,46 @@ namespace TestReadmeCodeSnippets
 			int v;
 		};
 
-		Promise<MovableType> taskThatReturnsAMovableValueTypePromise() {
+		Promise<MovableType> taskThatReturnsAMovableResultTypePromise() {
 			co_return MovableType(1);
 		}
 
-		Promise<CopyableType> taskThatReturnsACopyableValueTypePromise() {
+		Promise<CopyableType> taskThatReturnsACopyableResultTypePromise() {
 			co_return CopyableType(1);
 		}
 
-		Promise<ShareableFromThisType> taskThatReturnsAShareableValueTypePromise() {
+		Promise<ShareableFromThisType> taskThatReturnsAShareableResultTypePromise() {
 			co_return ShareableFromThisType(1);
 		}
 
 		Promise<> coroutineThatMovesTheValue() {
 			// Get the lvalue reference.
-			MovableType& v = co_await taskThatReturnsAMovableValueTypePromise();
+			MovableType& result = co_await taskThatReturnsAMovableResultTypePromise();
 
-			// Move the resolved value into a new instance of MovableType.
-			MovableType vv(move(v));  // cast v to an rvalue to invoke the move constructor
+			// Move the result into a new instance of MovableType.
+			MovableType rr(move(result));  // cast v to an rvalue to invoke the move constructor
 
-			cout << "vv=" << vv.internalValue() << "\n";
+			cout << "rr=" << rr.internalValue() << "\n";
 		}
 
 		Promise<> coroutineThatCopiesTheValue() {
 			// Get the lvalue reference.
-			CopyableType& v = co_await taskThatReturnsACopyableValueTypePromise();
+			CopyableType& result = co_await taskThatReturnsACopyableResultTypePromise();
 
-			// Copy the resolved value to a new instance of CopyableType.
-			CopyableType vv(v);  // use v as an lavalue to invoke the copy constructor
+			// Copy the result to a new instance of CopyableType.
+			CopyableType rr(result);  // use v as an lavalue to invoke the copy constructor
 
-			cout << "vv=" << vv.internalValue() << "\n";
+			cout << "rr=" << rr.internalValue() << "\n";
 		}
 
 		Promise<> coroutineThatGetsASharedPointerToTheValue() {
 			// Copy the lvalue refrence to the resolved value.
-			ShareableFromThisType& v = co_await taskThatReturnsAShareableValueTypePromise();
+			ShareableFromThisType& result = co_await taskThatReturnsAShareableResultTypePromise();
 
 			// Get a shared_ptr to the resolved value.
-			shared_ptr<ShareableFromThisType> vv(v.shared_from_this());
+			shared_ptr<ShareableFromThisType> rr(result.shared_from_this());
 
-			cout << "vv=" << vv->internalValue() << "\n";
+			cout << "rr=" << rr->internalValue() << "\n";
 		}
 
 	public:
@@ -209,18 +209,18 @@ namespace TestReadmeCodeSnippets
 
 		TEST_METHOD(MoveCaveat)
 		{
-			Promise<MovableType> p = taskThatReturnsAMovableValueTypePromise();
-			p.Then([](MovableType& v) {
+			Promise<MovableType> p = taskThatReturnsAMovableResultTypePromise();
+			p.Then([](MovableType& result) {
 				// This Lambda will be called first.
 
-				MovableType vv(move(v));  // cast v to an rvalue to invoke the move constructor
-				cout << "vv=" << vv.internalValue() << "\n";
+				MovableType rr(move(result));  // cast v to an rvalue to invoke the move constructor
+				cout << "rr=" << rr.internalValue() << "\n";
 
-				}).Then([](MovableType& v) {
+				}).Then([](MovableType& result) {
 					// This Lambda will be called next.
 
-					MovableType vv(move(v));  // BUG: v was moved already
-					cout << "vv=" << vv.internalValue() << "\n";
+					MovableType rr(move(result));  // BUG: v was moved already
+					cout << "rr=" << rr.internalValue() << "\n";
 				});
 		}
 
@@ -234,6 +234,65 @@ namespace TestReadmeCodeSnippets
 			coroutineThatGetsASharedPointerToTheValue();
 		}
 
+	};
+	//***************************************************************************************
+	TEST_CLASS(NittyGritty_coroutines)
+	{
+	private:
+		Promise<TranscriptionCounter> coReturnFromValue(TranscriptionCounter val) {
+			co_return val;
+		}
+
+		Promise<TranscriptionCounter> coReturnFromReferenceByCopying(TranscriptionCounter& ref) {
+			co_return ref;
+		}
+
+		Promise<TranscriptionCounter> coReturnFromReferenceByMoving(TranscriptionCounter& ref) {
+			co_return move(ref);   // use move() to cast to an rvalue
+		}
+
+	public:
+		TEST_METHOD(CallAndResolveWithReferenceByCopying)
+		{
+			// Construct a TranscriptionCounter
+			int nMoveCtor = 0, nMoveAssign = 0, nCopyCtor = 0, nCopyAssign = 0;
+			TranscriptionCounter* obj = TranscriptionCounter::constructAndSetCounters("obj1", &nMoveCtor, &nMoveAssign, &nCopyCtor, &nCopyAssign);
+
+			auto p = coReturnFromReferenceByCopying(*obj);
+
+			Assert::AreEqual(0, nMoveCtor);
+			Assert::AreEqual(0, nMoveAssign);
+			Assert::AreEqual(1, nCopyCtor);   // (1) done by co_return
+			Assert::AreEqual(0, nCopyAssign);
+		}
+
+		TEST_METHOD(CallAndResolveWithReferenceByMoving)
+		{
+			// Construct a TranscriptionCounter
+			int nMoveCtor = 0, nMoveAssign = 0, nCopyCtor = 0, nCopyAssign = 0;
+			TranscriptionCounter* obj = TranscriptionCounter::constructAndSetCounters("obj1", &nMoveCtor, &nMoveAssign, &nCopyCtor, &nCopyAssign);
+
+			auto p = coReturnFromReferenceByMoving(*obj);
+
+			Assert::AreEqual(1, nMoveCtor);   // (1) done by co_return
+			Assert::AreEqual(0, nMoveAssign);
+			Assert::AreEqual(0, nCopyCtor);
+			Assert::AreEqual(0, nCopyAssign);
+		}
+
+		TEST_METHOD(CallAndResolveWithValue)
+		{
+			// Construct a TranscriptionCounter
+			int nMoveCtor = 0, nMoveAssign = 0, nCopyCtor = 0, nCopyAssign = 0;
+			TranscriptionCounter* obj = TranscriptionCounter::constructAndSetCounters("obj1", &nMoveCtor, &nMoveAssign, &nCopyCtor, &nCopyAssign);
+
+			Promise<TranscriptionCounter> p = coReturnFromValue(*obj);
+
+			Assert::AreEqual(2, nMoveCtor);    // (2) done to move parameter val into the coroutine's frame; (3) done by co_return
+			Assert::AreEqual(0, nMoveAssign);
+			Assert::AreEqual(1, nCopyCtor);    // (1) done to call coReturnFromValue() with val by value
+			Assert::AreEqual(0, nCopyAssign);
+		}
 	};
 	//***************************************************************************************
 }
