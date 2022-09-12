@@ -369,7 +369,7 @@ namespace JSLike {
        * @return True if execution should NOT be suspended, otherwise false.
        */
       bool await_ready() const noexcept {
-        return m_state->m_isResolved;
+        return m_state->m_isResolved || m_state->m_eptr != nullptr;
       }
 
       /**

@@ -46,6 +46,17 @@ namespace TestJSLikeValuedPromise
 		}
 
 	public:
+		TEST_METHOD(Prereject_uncaught)
+		{
+			auto [p1, p1state] = Promise<int>::getUnresolvedPromiseAndState();
+			// Prereject p1.
+			p1state->reject(make_exception_ptr(out_of_range("invalid string position")));
+
+			auto result = myCoAwaitingCoroutine(p1);
+			Assert::IsFalse(result.isResolved());
+			Assert::IsTrue(result.isRejected());
+		}
+
 		TEST_METHOD(Preresolved)
 		{
 			Promise<int> p1(1);

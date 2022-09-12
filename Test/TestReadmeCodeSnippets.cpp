@@ -74,11 +74,11 @@ namespace TestReadmeCodeSnippets
 			int result;
 			try {
 				result = co_await x;  // Resume and throw if x is rejected.
+				cout << "result=" << result << "\n";
 			}
 			catch (exception& ex) {
 				cout << "ex=" << ex.what() << "\n";
 			}
-			cout << "result=" << result << "\n";
 		}
 
 	public:
