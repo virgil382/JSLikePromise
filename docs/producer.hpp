@@ -3,7 +3,7 @@ void startAsyncOperation(shared_ptr<PromiseState<int>> promiseState) {
   // Start an async operation via an API named Deep Thought.
   deepThoughtAPI.cogitate(
 
-    // Deep Thought calls this Lambda after it finds the answer to
+    // Deep Thought calls this lambda after it finds the answer to
     // Life, the Universe, and Everything.
     [promiseState](error_code errorCode, int theAnswer) {
 

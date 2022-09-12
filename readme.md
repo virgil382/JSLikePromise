@@ -5,7 +5,7 @@ A [JavaScript Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/R
 
 JavaScript Promises and *async* functions introduced by ES6 (also known as ECMAScript-6) are arguably the best thing since the invention of threads.  JavaScript Promises help you to implement legible and maintainable single-threaded asynchronous logic (e.g. for network applications).  Such programs entirely avoid the pitfalls of concurrency, are performant, and are generally easier to read and debug.
 
-This library, named "JS-like Promises" for brevity, enables you to write single-threaded asynchronous C+\+20 code that looks and feels like JavaScript ES6 code.  The semantics and syntax of JS-like Promises are "close enough" to those of JavaScript ES6 Promises (see the [examples](#examples) section below), and the clarity of any code that uses it is expected to be comparable.  But because C++ is compiled and can be optimized, the speed of the resulting executable is **awesome!**
+This library, named "JS-like Promises" for brevity, enables you to write single-threaded asynchronous C+\+20 code that looks and feels like JavaScript ES6 code.  The semantics and syntax of JS-like Promises are "close enough" to those of JavaScript ES6 Promises (see the [examples](#examples) section below for side-by-side JavaScript and C++ code), and the clarity of any code that uses it is expected to be comparable.  But because C++ is compiled and can be optimized, the speed of the resulting executable is **awesome!**
 
 Use this library to build a wrapper for your favorite asynchronous network IO library (e.g. ASIO) and you'll find that you can easily take your application to the next level (well beyond just a simple chat client/server or TCP proxy) because of its readability and maintainability.
 
@@ -27,53 +27,53 @@ Think of a Promise as a communication channel between a Producer (usually an asy
 
 ### Explicitly Resolving a Promise
 
-The diagram below shows with finer granularity the collaboration sequence between the Consumer and the Producer via the ```Promise``` and the ```PromiseState```, which is the object that holds the state of the ```Promise```.
+The diagram below shows with finer granularity the collaboration sequence between the Consumer and the Producer via the ```Promise``` and the ```PromiseState```, which is the object that holds the state of the ```Promise```, including the result.
 
-Note that a ```Promise``` is just "thin veneer" around the ```PromiseState```.  ```Promises``` can be copied, moved, and passed around efficiently.  The ```Promise``` class defines the ```Then()``` and ```Catch()``` methods via which the Consumer may register callbacks to handle the resolution or rejection of the Promise.   These callbacks are typically lambda expressions.
+Note that a ```Promise``` is just "thin veneer" around the ```PromiseState```.  ```Promises``` can be copied, moved, and passed around with low overhead because there is only a ```shared_ptr``` to be copied/moved.  The ```Promise``` class defines the ```Then()``` and ```Catch()``` methods via which the Consumer may register callbacks to handle the resolution or rejection of the ```Promise```.   These callbacks are typically lambda expressions.
 
-```PromiseState``` implements the ```resolve()``` and ```reject()``` methods that a Producer may call to resolve or reject the Promise.
+```PromiseState``` implements the ```resolve()``` and ```reject()``` methods that a Producer may call to resolve or reject the ```Promise```.
 
-The following UML class diagram is annotated with comments intended to illustrate the collaboration sequence between the key classifiers.  Note that in C++, the UML aggregation relationship (i.e. the arrow with the open diamond tail) is typically implemented as a ```shared_ptr```.  Thus, the diagram can also help you to infer the lifecycles of some of the classifiers (e.g. the ```PromiseState``` and the ```ThenCallback```).  Lastly, in the interest of clarity, the diagram omits the ```CatchCallback```, which the Consumer may register via the ```Promise::Catch()``` method, but the subsequent code shows it.
+The following UML class diagram is annotated with comments intended to illustrate the collaboration sequence between the key classifiers.  Note that in C++, the UML aggregation relationship (i.e. the arrow with the open diamond tail) is typically implemented as a ```shared_ptr```.  Thus, the diagram can also help you to infer the lifecycles of some of the classifiers (e.g. the ```PromiseState``` and the ```ThenCallback```).  Lastly, in the interest of clarity, the diagram omits the ```CatchCallback```, which the Consumer may register via the ```Promise::Catch()``` method.
 
 ![Collaboration: Explicit Resolve](docs/CollaborationExplicitResolve.png)
 
-The following C++ code show the implementation of collaboration.
+The following application-level C++ code realizes this collaboration.
 
 <!-- BEGIN_MDAUTOGEN: code_table_body('Consumer', 'Producer', '../docs/consumer.hpp', '../docs/producer.hpp') -->
 |Consumer|Producer|
 |----|----|
-|<pre>auto p = Promise\<int\>(\[this](auto promiseState) {<br>  // This is the TaskInitializer.<br>  startAsyncOperation(promiseState);<br>});<br><br>p.Then(\[](int &result) {<br>  // This is the ThenCallback.<br>  cout \<\< "result = " \<\< result \<\< "\n";<br>});<br><br>p.Catch(\[](exception_ptr ex) {<br>  // This is the CatchCallback.<br>  // Handle exception<br>});|<pre>void startAsyncOperation(shared_ptr\<PromiseState\<int\>\> promiseState) {<br><br>  // Start an async operation via an API named Deep Thought.<br>  deepThoughtAPI.cogitate(<br><br>    // Deep Thought calls this Lambda after it finds the answer to<br>    // Life, the Universe, and Everything.<br>    \[promiseState](error_code errorCode, int theAnswer) {<br><br>      if(errorCode) {<br>        // Deep Thought detected an error.  Notify the Consumer.<br>        promiseState-\>reject(make_exception_ptr(system_error(errorCode)));<br>      } else {<br>        // Send the answer to the Consumer.<br>        promiseState-\>resolve(theAnswer);<br>      }<br><br>    });<br>}|
+|<pre>auto p = Promise\<int\>(\[this](auto promiseState) {<br>  // This is the TaskInitializer.<br>  startAsyncOperation(promiseState);<br>});<br><br>p.Then(\[](int &result) {<br>  // This is the ThenCallback.<br>  cout \<\< "result = " \<\< result \<\< "\n";<br>});<br><br>p.Catch(\[](exception_ptr ex) {<br>  // This is the CatchCallback.<br>  // Handle exception<br>});|<pre>void startAsyncOperation(shared_ptr\<PromiseState\<int\>\> promiseState) {<br><br>  // Start an async operation via an API named Deep Thought.<br>  deepThoughtAPI.cogitate(<br><br>    // Deep Thought calls this lambda after it finds the answer to<br>    // Life, the Universe, and Everything.<br>    \[promiseState](error_code errorCode, int theAnswer) {<br><br>      if(errorCode) {<br>        // Deep Thought detected an error.  Notify the Consumer.<br>        promiseState-\>reject(make_exception_ptr(system_error(errorCode)));<br>      } else {<br>        // Send the answer to the Consumer.<br>        promiseState-\>resolve(theAnswer);<br>      }<br><br>    });<br>}|
 <!-- END_MDAUTOGEN -->
 
 ### Chaining Promises
 
-The diagram in the previous section is a bit of an oversimplification.  But it gets the idea cross.  The actual class diagram is a bit more complicated.  The added complexity is needed to support Promise *chaining*.  Let me explain...
+The diagram in the previous section is a bit of an oversimplification.  But it gets the idea cross.  The actual class diagram and sequence are a bit more complex.  The additional complexity is needed to support ```Promise``` *chaining*, which this section aims to explain.
 
-As seen in the previous section, the Consumer registers its callbacks by calling ```Promise::Then()``` and ```Promise::Catch()```.  Each of these methods returns a new ```Promise``` that may be used to register an additional set of callbacks, and so on...  Each new Promise is *chained* to the previous one, which means that after the previous ```Promise``` gets resolved/rejected, the ```Promise``` chained to it also gets resolved/rejected, and so on down the chain.
+As seen in the previous section, the Consumer registers its callbacks by calling ```Promise::Then()``` and ```Promise::Catch()```.  Each of these methods returns a new ```Promise``` that may be used to register an additional set of callbacks, and so on.  Each new ```Promise``` is *chained* to the previous one, which means that after the previous ```Promise``` gets resolved/rejected, the ```Promise``` chained to it also gets resolved/rejected, and so on down the chain.
 
-For the curious, the following UML class diagram illustrates the internal structure that enables chaining.  Pay attention to the ```shared_ptr``` references (denoted as UML aggregation relationships i.e. the arrows with an open diamond tail).  From them, you can infer the lifecycles of important classifiers such as the ```PromiseStates```, the ```ThenCallbacks```, and most notably the Promise result, which is shared among the chained Promises.  This sharing is done for efficiency, and to interoperate with certain result types such as ```asio::ip::tcp::socket``` that cannot be copied.
+For the curious, the following UML class diagram illustrates aspects of the design that supports chaining.  Pay attention to the ```shared_ptr``` references (denoted as UML aggregation relationships i.e. the arrows with an open diamond tail).  From them, you can infer the lifecycles of important classifiers such as the ```PromiseStates```, the ```ThenCallbacks```, and most notably the ```Promise``` result, which is shared by all the chained ```Promises```.  This sharing enhances efficiency, and enables interoperation with certain result types that cannot be copied (e.g. ```asio::ip::tcp::socket```).
 
 ![Collaboration: Explicit Resolve](docs/ChainedPromises.png)
 
 
 ## Integration with Coroutines
 
-So far, all of this may seem like a glorified callback mechanism, which arguably isn't too far from the truth.  But the true power of Promises becomes evident when they are used in conjunction with coroutines.  This libraries/frameworks provides a convenient and programmer-friendly coroutine integration mechanism with intuitive semantics and clear syntax.
+So far, all of this may seem like a glorified callback mechanism, which arguably isn't too far from the truth.  But the true power of ```Promises``` becomes evident when they are used in conjunction with coroutines.  This libraries provides a convenient and programmer-friendly coroutine integration mechanism with intuitive semantics and clear syntax.
 
-Coroutines are essentially functions that can be suspended before they finish execution (e.g. perhaps because they must ```co_await``` some data that isn't yet available).  Coroutines can later be resumed (e.g. when the data is becomes available).  Note that this is something that you could alternately do with separate threads  (e.g. by spawning and joining threads).  Both approaches result in clear code and avoid "callback hell".  However, as you probably already know, the nondeterminism introduced by threads renders such applications:
-- prone to concurrency-related bugs
+Coroutines are essentially functions that can be suspended before they finish execution (e.g. perhaps because they must ```co_await``` for some data that isn't yet available).  Coroutines can later be resumed (e.g. when the data becomes available).  Note that this is something that you could alternately do with multiple threads  (e.g. by spawning and joining threads).  Both approaches result in clear code because they help the developer to avoid "callback hell" or having to implement complex state machines.  However, as you probably already know, the inevitable nondeterminism associated with multithreaded applications render them:
+- hard to develop and certify for correctness because they are prone to concurrency-related bugs
 - hard to maintain due to the risk of introducing concurrency-related bugs
 - hard to unit test (for behavior) because of the nondeterminism associated with concurrency
 
-Promises have semantics similar to spawn/join, but allow you to entirely avoid these problems.  Applications that use them are single-threaded, but can multitask.
+```Promises``` have semantics similar to spawn/join, but help you to avoid these problems entirely.  Applications that use ```Promises``` are typically single-threaded, asynchronous, and can multitask just like multithreaded applications.
 
 ### Coroutines Return Promises
 
-When using this library, your coroutines can be declared to return a ```Promise```.  They do this at "first opportunity" after you call them.  I.e. They return the ```Promise``` after the coroutine suspends execution either because it called ```co_await``` which determined that execution may not continue, or because of the final suspend that implicitly occurs if it called ```co_return```.  After the suspend occurs, the stack is unwound and you get the ```Promise```.  Note that the ```Promise``` may still be *unsettled* (i.e. neither resolved, nor rejected).
+When using this library, your coroutine can be declared to return a ```Promise```.  It does this at "first opportunity" after you call it.  I.e. It returns the ```Promise``` after the coroutine suspends execution either because it calls ```co_await``` and it determines that execution may not continue, or because it calls ```co_return``` and execution implicitly suspends.  After the coroutine suspends execution, the call stack is unwound and you get the ```Promise```.  Note that the ```Promise``` may still be *unsettled* (i.e. neither resolved, nor rejected).
 
 ### Coroutines can Resolve Promises
 
-To resolve the ```Promise``` returned by the coroutine, call ```co_return``` with the value with which you want resolve the ```Promise```.  We will see in a subsequent section that ```co_return``` supports move semantics for efficiency, and to interoperate with result types such as ```asio::ip::tcp::socket``` that cannot be copied.
+To resolve the ```Promise``` returned by the coroutine, call ```co_return``` with the value with which you want to resolve the ```Promise```.  We will see in a subsequent section that ```co_return``` supports move semantics for efficiency, and to interoperate with result types such as ```asio::ip::tcp::socket``` that cannot be copied.
 
 ```
 Promise<int> coroutine1() {
