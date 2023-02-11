@@ -14,6 +14,13 @@ Use this library to build a wrapper for your favorite asynchronous network IO li
 
 Before diving into concepts, it is important to note that the term "promise" is one of the most overloaded terms in the domain of Software Engineering, I promise.  So if you are already familiar with another promise API, then please clear your mind of those concepts and start fresh.  For brevity, from here on, the term "Promise" is used to refer to JS-Like Promises (which are uncannily similar to ES6 JavaScript promises).  So there is ample documentation out there to complement what you read here.
 
+## Building
+This project requires Visual Studio 2022 of higher.  The free (Community) version should be fine. Just open the .SLN file and build.
+
+Make sure the Node.js (and npm) are also installed.  The "docs" project relies on JavaScript code in the "mdautogen" directory to auto-generate portions of this file (readme.md) to help keep the documentation up to date with working code (e.g. unit tests and example code).
+
+I will try to find the time to port this project to CMake and gtest to make it more cross-platform.  But if anyone is willing to do it sooner, then feel free to create a pull request.  Alternately, I could do it if you hire me, but I expect that the result will remain open and unencumbered legally.
+
 
 ## Concept & Details
 
