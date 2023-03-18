@@ -653,7 +653,7 @@ namespace JSLike {
       }
 
       /**
-       * Called when a coroutine that returns a Promise<T> calls co_return, which resolves the
+       * Called when a coroutine that returns a Promise<> calls co_return, which resolves the
        * Promise<> returned by the coroutine.
        */
       void return_void() {
@@ -664,7 +664,7 @@ namespace JSLike {
     /**
      * An awaiter_type is constructed each time a coroutine co_awaits on a Promise<>.
      * During construction, the awaiter_type gets a reference to the PromiseState<> of the
-     * on which it is co_awaiting (see Promise<>::co_await()).  The awaiter_type then
+     * Promise<> on which it is co_awaiting (see Promise<>::co_await()).  The awaiter_type then
      * interacts with the PromiseState<> through this reference (e.g. to determine if
      * execution should be suspended/resumed).
      */

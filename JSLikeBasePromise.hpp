@@ -284,15 +284,6 @@ namespace JSLike {
       return chainedPromise;
     }
 
-    /**
-     * BasePromise.Catch() is used to specify a Lambda to be invoked if the BasePromise is rejected
-     * (via its PromiseState) or if an exception was thrown in the context of the coroutine that returned
-     * this BasePromise.  The Lambda is saved in the BasePromiseState, so it exists for as long as the
-     * VoidePromiseState exists.
-     *
-     * @param catchCallback A function to be called after the BasePromise is rejected.
-     * @return This BasePromise (for call chaining).
-     */
     BasePromise Catch(CatchCallback catchCallback) {
       BasePromise chainedPromise;
       auto chainedPromiseState = chainedPromise.state();
