@@ -472,7 +472,7 @@ Note that due to the C++ requirement for type specificity, valued Promises must 
 Promise<int> p;
 ```
 
-JavaScript does not impose this constraint.  In fact, you can resolve a JavaScript Promise to any value type.  However, one should hope that programs that rely on this flexibility are never allowed to reach production.  But each to his own...
+JavaScript does not impose this constraint.  In fact, you can resolve a JavaScript Promise to any value type.  However, one should hope that programs that rely on that kind of flexibility are never allowed to reach production.  But each to his own...
 
 ### Coroutines can't ```co_return``` ```Promise<void>```
 
