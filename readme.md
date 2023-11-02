@@ -478,7 +478,7 @@ JavaScript does not impose this constraint.  In fact, you can resolve a JavaScri
 
 C\++20 coroutines can't return Promise<void> due to a [constraint](https://eel.is/c++draft/dcl.fct.def.coroutine#6) imposed by C++20 on coroutine promise types.  JavaScript async functions can.
 
-Note that this constraint applies only to retruning ```Promise<void>```.  Returning valued Promises (e.g. ```Promise<int>```) is allowed.
+Note that this constraint applies only to returning ```Promise<void>```.  Returning valued Promises (e.g. ```Promise<int>```) is allowed.
 
 <!-- BEGIN_MDAUTOGEN: code_table_body('JavaScript', 'C++20', '../Examples_JavaScript/difference01.js', '../Examples_C++20/difference01.hpp') -->
 |JavaScript|C++20|
