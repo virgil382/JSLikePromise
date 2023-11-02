@@ -84,11 +84,11 @@ To resolve the ```Promise``` returned by the coroutine, call ```co_return``` wit
 
 ```
 Promise<int> coroutine1() {
-    co_return 1;                 // Resolve the returned Promise to 1.
+    co_return 1;                 // Resolve the Promise to 1 and returns it
 }
 
 int main() {
-    auto y = coroutine1();       // y is returned before the coroutine finishes execution
+    auto y = coroutine1();       // y is assigned the reolved Promise
 }
 ```
 
