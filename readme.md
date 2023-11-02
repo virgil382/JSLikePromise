@@ -292,7 +292,7 @@ Finally, how about this example?
 1. The reference to ```TranscriptionCounter``` is copied from the stack to the coroutine's heap-based frame so that the reference is available as parameter ```val``` to the coroutine's code.
 1. The ```TranscriptionCounter``` move constructor is called because ```co_return``` invokes ```Promise<T>::promise_type::return_value(T &&val)```, which eventually resolves the Promise by moving ```val```.
 
-So the example above performs 1 move.
+So the example above performs 0 copies and 1 move.
 
 
 ### Consuming the Result from a Resolved Promise
