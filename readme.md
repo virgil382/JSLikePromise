@@ -271,7 +271,7 @@ How many times is the ```TranscriptionCounter``` move constructor alled?
 1. The reference to ```TranscriptionCounter``` is copied from the stack to the coroutine's heap-based frame so that the reference is available as parameter ```val``` to the coroutine's code.
 1. The ```TranscriptionCounter``` copy constructor is called because ```co_return``` invokes ```Promise<T>::promise_type::return_value(const T &val)```, which eventually resolves the Promise by copying ```val```.
 
-So the example above performs 1 copy.
+So the example above performs 1 copy and 0 moves.
 
 #### Example 3: Call Coroutine with "by reference" Parameter and "Move" Resolve Promise
 
