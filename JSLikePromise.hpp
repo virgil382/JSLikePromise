@@ -9,9 +9,9 @@
 
 #include "JSLikeBasePromise.hpp"
 
-using namespace std;
-
 namespace JSLike {
+
+  using namespace std;
 
   // Forward declarations needed to declare "friendships" among structs.
   template<typename T> struct Promise;
