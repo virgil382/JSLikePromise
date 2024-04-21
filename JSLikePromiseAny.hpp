@@ -12,9 +12,10 @@
 #include "JSLikePromise.hpp"
 #include "JSLikeBasePromise.hpp"
 
-using namespace std;
-
 namespace JSLike {
+
+  using namespace std;
+
   struct PromiseAnyState : public PromiseState<shared_ptr<BasePromiseState>> {
     PromiseAnyState() = default;
 

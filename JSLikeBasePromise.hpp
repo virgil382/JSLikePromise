@@ -6,9 +6,9 @@
 #include <functional>
 #include <exception>
 
-using namespace std;
-
 namespace JSLike {
+
+  using namespace std;
 
   // Forward declarations needed to declare "friendships" among structs.
   struct BasePromise;
