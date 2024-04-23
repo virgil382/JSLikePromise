@@ -104,7 +104,10 @@ namespace JSLike {
     T &value() {
       PromiseState<T>* castState = dynamic_cast<PromiseState<T> *>(this);
       if (!castState) {
-        throw bad_cast();
+        string err("bad cast from BasePromiseState to PromiseState<");
+        err += typeid(T).name();
+        err += ">";
+        throw bad_cast::__construct_from_string_literal(err.c_str());
       }
       return castState->value();
     }
@@ -114,7 +117,10 @@ namespace JSLike {
     void resolve(T& value) {
       PromiseState<T>* castState = dynamic_cast<PromiseState<T> *>(this);
       if (!castState) {
-        throw bad_cast();
+        string err("bad cast from BasePromiseState to PromiseState<");
+        err += typeid(T).name();
+        err += ">";
+        throw bad_cast::__construct_from_string_literal(err.c_str());
       }
       castState->resolve(value);
     }
@@ -131,7 +137,10 @@ namespace JSLike {
     void resolve(T && value) {
       PromiseState<T>* castState = dynamic_cast<PromiseState<T> *>(this);
       if (!castState) {
-        throw bad_cast();
+        string err("bad cast from BasePromiseState to PromiseState<");
+        err += typeid(T).name();
+        err += ">";
+        throw bad_cast::__construct_from_string_literal(err.c_str());
       }
       castState->resolve(forward<T>(value));
     }
