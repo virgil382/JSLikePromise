@@ -20,6 +20,21 @@ namespace JSLike {
   // Forward declaration for dynamic_cast
   template<typename T> struct PromiseState;
 
+  /**
+   * JSLike::bad_cast specializes std:bad_cast by allowing the the caller to specify
+   * a "what" message at construction time.
+   */
+  class bad_cast : public std::bad_cast {
+  private:
+    std::string m_message;
+  public:
+    bad_cast(const std::string& message) : m_message(message) {}
+
+    // Override what() to provide custom error message
+    const char* what() const noexcept override {
+      return m_message.c_str();
+    }
+  };
 
 
   /**
@@ -107,7 +122,7 @@ namespace JSLike {
         string err("bad cast from BasePromiseState to PromiseState<");
         err += typeid(T).name();
         err += ">";
-        throw bad_cast::__construct_from_string_literal(err.c_str());
+        throw bad_cast(err.c_str());
       }
       return castState->value();
     }
@@ -120,7 +135,7 @@ namespace JSLike {
         string err("bad cast from BasePromiseState to PromiseState<");
         err += typeid(T).name();
         err += ">";
-        throw bad_cast::__construct_from_string_literal(err.c_str());
+        throw bad_cast(err.c_str());
       }
       castState->resolve(value);
     }
@@ -140,7 +155,7 @@ namespace JSLike {
         string err("bad cast from BasePromiseState to PromiseState<");
         err += typeid(T).name();
         err += ">";
-        throw bad_cast::__construct_from_string_literal(err.c_str());
+        throw bad_cast(err.c_str());
       }
       castState->resolve(forward<T>(value));
     }
