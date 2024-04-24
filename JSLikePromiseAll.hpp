@@ -10,9 +10,10 @@
 #include "JSLikePromise.hpp"
 #include "JSLikeBasePromise.hpp"
 
-using namespace std;
-
 namespace JSLike {
+
+  using namespace std;
+
   struct PromiseAllState : public PromiseState<vector<shared_ptr<BasePromiseState>>> {
     PromiseAllState() : m_nUnresolved(-1) {}
 
